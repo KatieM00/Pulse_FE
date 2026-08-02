@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { EVENTS, TRAVEL_SIGNALS, CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/data";
 import { Category } from "@/lib/types";
 import EventRow from "@/components/EventRow";
@@ -15,6 +16,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const filteredEvents = selectedCategory
     ? EVENTS.filter((e) => e.category === selectedCategory)
@@ -59,6 +61,8 @@ export default function HomePage() {
         </span>
         <button
           aria-label="Open menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
           style={{
             width: 44,
             height: 44,
@@ -87,6 +91,104 @@ export default function HomePage() {
           </svg>
         </button>
       </header>
+
+      {/* ── Slide-in menu ───────────────────────────────────────────────── */}
+      {menuOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            aria-hidden="true"
+            onClick={() => setMenuOpen(false)}
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(0,0,0,0.25)",
+              zIndex: 200,
+            }}
+          />
+
+          {/* Drawer */}
+          <nav
+            aria-label="Site menu"
+            style={{
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 260,
+              background: "#ffffff",
+              boxShadow: "-4px 0 24px rgba(0,0,0,0.10)",
+              zIndex: 201,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* Drawer header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px 20px 12px",
+                borderBottom: "0.5px solid rgba(0,0,0,0.07)",
+              }}
+            >
+              <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: -0.4, color: "#1A1A1A" }}>
+                Menu
+              </span>
+              <button
+                aria-label="Close menu"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  color: "#6B7280",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Menu items */}
+            <div style={{ flex: 1, padding: "8px 12px" }}>
+              {[
+                { href: "/how-it-works", icon: "💡", label: "How Pulse Works" },
+                { href: "/integrate",    icon: "🔌", label: "Integrate Pulse" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 10px",
+                    borderRadius: 10,
+                    textDecoration: "none",
+                    color: "#1A1A1A",
+                    fontSize: 14,
+                    fontWeight: 500,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+        </>
+      )}
 
       {/* Hero */}
       <section style={{ padding: "32px 20px 24px", textAlign: "center" }}>
