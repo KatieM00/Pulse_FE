@@ -61,26 +61,6 @@ const TABS = [
       </svg>
     ),
   },
-  {
-    href: "/profile",
-    label: "Profile",
-    icon: (active: boolean) => (
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={active ? "#EF9F27" : "#9CA3AF"}
-        strokeWidth={active ? 2.2 : 1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
-  },
 ];
 
 export default function BottomNav() {
