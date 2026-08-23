@@ -40,4 +40,23 @@ export interface ChatMessage {
   role: "user" | "assistant";
   text: string;
   events?: Event[];
+  sources?: SourceRef[];
+}
+
+/** A numbered, cited source returned by the Pulse ask API. */
+export type SourceKind = "radio" | "tiktok" | "instagram" | "youtube" | "link" | "internal";
+
+export interface SourceRef {
+  n: number;
+  label: string;
+  url: string;
+  kind: SourceKind;
+  /** radio: audio URL; tiktok: video id; instagram: shortcode; youtube: video id */
+  embed: string;
+}
+
+export interface AskResponse {
+  answer: string;
+  sources: SourceRef[];
+  error?: string;
 }

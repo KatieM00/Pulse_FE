@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChatMessage } from "@/lib/types";
-import { buildInitialMessages, getConciergeResponse } from "@/lib/concierge";
+import { askPulse } from "@/lib/api";
 import EventRow from "@/components/EventRow";
+import SourceList from "@/components/SourceList";
 
 const SUGGESTIONS = [
   "What's on today?",
   "Any soca events this week?",
-  "How do I get tickets?",
+  "Where and when is the circus?",
   "What's happening at the beach?",
 ];
 
@@ -20,42 +21,74 @@ function ChatContent() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const seededRef = useRef(false);
+
+  const sendMessage = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const userMsg: ChatMessage = {
+      id: `msg-user-${Date.now()}`,
+      role: "user",
+      text: trimmed,
+    };
+    const pendingId = `msg-assistant-pending-${Date.now()}`;
+    const pendingMsg: ChatMessage = {
+      id: pendingId,
+      role: "assistant",
+      text: "Listening to the airwaves…",
+    };
+    setMessages((prev) => [...prev, userMsg, pendingMsg]);
+    setInputValue("");
+    setSending(true);
+
+    try {
+      const result = await askPulse(trimmed);
+      const answerText =
+        result.answer ||
+        "I don't have any source-backed evidence for that yet — signals are still coming in.";
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === pendingId
+            ? { ...m, id: `msg-assistant-${Date.now()}`, text: answerText, sources: result.sources }
+            : m,
+        ),
+      );
+    } catch {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === pendingId
+            ? {
+                ...m,
+                id: `msg-assistant-${Date.now()}`,
+                text: "Sorry — I couldn't reach the Pulse service just now. Try again in a moment.",
+              }
+            : m,
+        ),
+      );
+    } finally {
+      setSending(false);
+    }
+  }, []);
 
   // Seed conversation from URL param on mount
   useEffect(() => {
-    if (initialQ) {
-      setMessages(buildInitialMessages(initialQ));
+    if (initialQ && !seededRef.current) {
+      seededRef.current = true;
+      void sendMessage(initialQ);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialQ, sendMessage]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function sendMessage(text: string) {
-    if (!text.trim()) return;
-    const userMsg: ChatMessage = {
-      id: `msg-user-${Date.now()}`,
-      role: "user",
-      text: text.trim(),
-    };
-    const result = getConciergeResponse(text.trim());
-    const assistantMsg: ChatMessage = {
-      id: `msg-assistant-${Date.now()}`,
-      role: "assistant",
-      text: result.text,
-      events: result.events,
-    };
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
-    setInputValue("");
-  }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    sendMessage(inputValue);
+    void sendMessage(inputValue);
   }
 
   return (
@@ -122,7 +155,7 @@ function ChatContent() {
             Pulse Concierge
           </div>
           <div style={{ fontSize: 11, color: "#9CA3AF" }}>
-            Ask me anything about Caribbean events
+            Live answers from radio, news and social
           </div>
         </div>
       </header>
@@ -155,7 +188,8 @@ function ChatContent() {
                 margin: "0 auto 24px",
               }}
             >
-              Ask me what&apos;s on, how to get tickets, or how to get to an event.
+              Ask me what&apos;s on, where something is, or what&apos;s being
+              talked about — answers come from live radio, news and social.
             </p>
             <div
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -163,7 +197,7 @@ function ChatContent() {
               {SUGGESTIONS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => sendMessage(s)}
+                  onClick={() => void sendMessage(s)}
                   style={{
                     padding: "11px 16px",
                     borderRadius: 12,
@@ -190,7 +224,7 @@ function ChatContent() {
               style={{
                 display: "flex",
                 justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                marginBottom: msg.role === "assistant" && msg.events?.length ? 8 : 12,
+                marginBottom: msg.role === "assistant" && (msg.events?.length || msg.sources?.length) ? 8 : 12,
               }}
             >
               <div
@@ -218,6 +252,11 @@ function ChatContent() {
                   <EventRow key={event.id} event={event} />
                 ))}
               </div>
+            )}
+
+            {/* Numbered sources with embeds below assistant reply */}
+            {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
+              <SourceList sources={msg.sources} />
             )}
           </div>
         ))}
@@ -259,6 +298,7 @@ function ChatContent() {
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Ask Pulse anything"
             autoComplete="off"
+            disabled={sending}
             style={{
               flex: 1,
               padding: "12px 16px",
@@ -274,14 +314,14 @@ function ChatContent() {
           <button
             type="submit"
             aria-label="Send message"
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || sending}
             style={{
               width: 46,
               height: 46,
               borderRadius: 12,
               border: "2px solid #EF9F27",
-              background: inputValue.trim() ? "#EF9F27" : "#ffffff",
-              cursor: inputValue.trim() ? "pointer" : "default",
+              background: inputValue.trim() && !sending ? "#EF9F27" : "#ffffff",
+              cursor: inputValue.trim() && !sending ? "pointer" : "default",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -294,7 +334,7 @@ function ChatContent() {
               height="18"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={inputValue.trim() ? "#ffffff" : "#EF9F27"}
+              stroke={inputValue.trim() && !sending ? "#ffffff" : "#EF9F27"}
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"

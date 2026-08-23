@@ -231,7 +231,7 @@ export default function EventRow({ event }: Props) {
                   <strong style={{ fontWeight: 600, color: "#4B5563" }}>
                     {src.name}
                   </strong>{" "}
-                  — "{src.excerpt}"
+                  — &quot;{src.excerpt}&quot;
                 </span>
               </div>
             ))}
