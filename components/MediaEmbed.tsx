@@ -22,6 +22,7 @@ const EMBED_FRAME: React.CSSProperties = {
 export default function MediaEmbed({ source }: Props) {
   switch (source.kind) {
     case "radio":
+      if (!source.embed) return null;
       return (
         <audio
           controls

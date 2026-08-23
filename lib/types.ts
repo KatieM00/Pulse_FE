@@ -53,6 +53,8 @@ export interface SourceRef {
   kind: SourceKind;
   /** radio: audio URL; tiktok: video id; instagram: shortcode; youtube: video id */
   embed: string;
+  /** Present in evidence but not cited inline — shown as "related". */
+  uncited?: boolean;
 }
 
 export interface AskResponse {
