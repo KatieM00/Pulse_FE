@@ -53,8 +53,23 @@ export interface SourceRef {
   kind: SourceKind;
   /** radio: audio URL; tiktok: video id; instagram: shortcode; youtube: video id */
   embed: string;
+  /** ISO timestamp for the captured radio segment. */
+  segment_at?: string;
   /** Present in evidence but not cited inline — shown as "related". */
   uncited?: boolean;
+  /** Issue #26 — display fields hydrated server-side. */
+  /** Human-readable title (station name, social post title, page title). */
+  title?: string | null;
+  /** Source identity (handle, site name, "FM broadcast"). */
+  publisher?: string | null;
+  /** ISO capture/observation timestamp for the underlying source. */
+  captured_at?: string | null;
+  /** Direct CDN preview image (signed URLs expire per answer). */
+  thumbnail_url?: string | null;
+  /** Single-sentence explanation of why this card was returned. */
+  reason?: string | null;
+  /** Radio only — broadcast frequency in MHz. */
+  station_frequency_mhz?: number | null;
 }
 
 export interface AskResponse {

@@ -286,8 +286,8 @@ function ChatContent() {
             >
               <div
                 style={{
-                  maxWidth: "82%",
-                  padding: "10px 14px",
+                  maxWidth: msg.role === "user" ? "82%" : "100%",
+                  padding: msg.role === "user" ? "10px 14px" : "12px 16px",
                   borderRadius:
                     msg.role === "user"
                       ? "16px 16px 4px 16px"
@@ -296,6 +296,7 @@ function ChatContent() {
                   color: msg.role === "user" ? "#ffffff" : "#1A1A1A",
                   fontSize: 14,
                   lineHeight: 1.55,
+                  whiteSpace: "pre-wrap",
                 }}
               >
                 {msg.id.startsWith("msg-assistant-pending-") ? (
