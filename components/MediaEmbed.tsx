@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { SourceRef } from "@/lib/types";
 
 interface Props {
@@ -20,6 +21,8 @@ const EMBED_FRAME: React.CSSProperties = {
  * snippets, native iframes for social posts, nothing for plain links.
  */
 export default function MediaEmbed({ source }: Props) {
+  const [tiktokLoaded, setTiktokLoaded] = useState(false);
+
   switch (source.kind) {
     case "radio":
       if (!source.embed) return null;
@@ -32,6 +35,31 @@ export default function MediaEmbed({ source }: Props) {
         />
       );
     case "tiktok":
+      if (!source.embed) return null;
+      if (!tiktokLoaded) {
+        return (
+          <button
+            type="button"
+            onClick={() => setTiktokLoaded(true)}
+            aria-label={`Load TikTok video from ${source.label}`}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              padding: "13px 16px",
+              border: "0.5px solid rgba(0,0,0,0.12)",
+              borderRadius: 12,
+              background: "#F9FAFB",
+              color: "#1A1A1A",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600,
+              textAlign: "center",
+            }}
+          >
+            Load TikTok video
+          </button>
+        );
+      }
       return (
         <iframe
           src={`https://www.tiktok.com/embed/v2/${source.embed}`}
