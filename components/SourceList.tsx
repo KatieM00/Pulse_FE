@@ -78,8 +78,9 @@ const DOMAIN_STYLE: React.CSSProperties = {
 
 /**
  * Numbered source cards under an assistant reply. Numbers match the [n]
- * citations the answer model emitted; each card links to the source and
- * rich sources render inline embeds.
+ * citations the answer model emitted; uncited "related" cards carry no
+ * number since no prose citation points at them. Rich sources render
+ * inline embeds.
  */
 export default function SourceList({ sources }: Props) {
   if (sources.length === 0) return null;
@@ -114,17 +115,19 @@ export default function SourceList({ sources }: Props) {
         const letter = (host || src.label || "?").charAt(0).toUpperCase();
         const body = (
           <>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: linked ? "#9CA3AF" : "#C4C7CC",
-                flexShrink: 0,
-                paddingTop: 1,
-              }}
-            >
-              [{src.n}]
-            </span>
+            {!src.uncited && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: linked ? "#9CA3AF" : "#C4C7CC",
+                  flexShrink: 0,
+                  paddingTop: 1,
+                }}
+              >
+                [{src.n}]
+              </span>
+            )}
             <SiteTile src={favicon} letter={letter} />
             {src.uncited && (
               <span
