@@ -14,6 +14,34 @@ const SUGGESTIONS = [
   "What's happening at the beach?",
 ];
 
+// Shown in the assistant bubble while the pipeline runs — one per source
+// it searches, in a fixed order so the cycle reads as a little tour.
+const STATUS_MESSAGES = [
+  "Listening to the airwaves…",
+  "Twiddling the radio dial…",
+  "Tiking the toks…",
+  "Checking the 'Gram…",
+  "Bingeing YouTube for clues…",
+  "Leafing through Ins & Outs…",
+  "Asking Visit Barbados…",
+  "Scanning the events calendar…",
+  "Checking where the lime is at…",
+  "Consulting the coconut wireless…",
+  "Asking around the rum shop…",
+  "Putting out feelers…",
+];
+
+const STATUS_INTERVAL_MS = 2200;
+
+const SCREEN_READER_ONLY: React.CSSProperties = {
+  position: "absolute",
+  width: 1,
+  height: 1,
+  overflow: "hidden",
+  clip: "rect(0,0,0,0)",
+  whiteSpace: "nowrap",
+};
+
 function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -24,10 +52,21 @@ function ChatContent() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const seededRef = useRef(false);
+  const sendingRef = useRef(false);
+  const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Don't leak the status cycle if the page unmounts mid-ask.
+  useEffect(
+    () => () => {
+      if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+    },
+    [],
+  );
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
 
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
@@ -38,11 +77,24 @@ function ChatContent() {
     const pendingMsg: ChatMessage = {
       id: pendingId,
       role: "assistant",
-      text: "Listening to the airwaves…",
+      text: STATUS_MESSAGES[0],
     };
     setMessages((prev) => [...prev, userMsg, pendingMsg]);
     setInputValue("");
     setSending(true);
+
+    // Cycle the tour-of-sources status while the pipeline runs.
+    let statusIndex = 0;
+    statusTimerRef.current = setInterval(() => {
+      statusIndex = (statusIndex + 1) % STATUS_MESSAGES.length;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === pendingId
+            ? { ...m, text: STATUS_MESSAGES[statusIndex] }
+            : m,
+        ),
+      );
+    }, STATUS_INTERVAL_MS);
 
     try {
       const result = await askPulse(trimmed);
@@ -69,6 +121,11 @@ function ChatContent() {
         ),
       );
     } finally {
+      if (statusTimerRef.current) {
+        clearInterval(statusTimerRef.current);
+        statusTimerRef.current = null;
+      }
+      sendingRef.current = false;
       setSending(false);
     }
   }, []);
@@ -84,7 +141,7 @@ function ChatContent() {
   // Scroll to bottom on new messages
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length, sending]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -241,7 +298,14 @@ function ChatContent() {
                   lineHeight: 1.55,
                 }}
               >
-                {msg.text}
+                {msg.id.startsWith("msg-assistant-pending-") ? (
+                  <>
+                    <span aria-hidden="true">{msg.text}</span>
+                    <span style={SCREEN_READER_ONLY}>Searching Pulse sources</span>
+                  </>
+                ) : (
+                  msg.text
+                )}
               </div>
             </div>
 
