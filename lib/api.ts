@@ -10,10 +10,19 @@ export async function askPulse(question: string): Promise<AskResponse> {
   // KG expansion + answer model can take tens of seconds.
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
+    // Anchor the retrieval to "now" with a 48-hour recency window so a
+    // chat question asked at 23:00 still surfaces radio transcripts that
+    // arrived at 16:00 the same day. The v2 pipeline's default 365-day
+    // fallback otherwise lets older events-calendar cards outrank fresh
+    // radio coverage for broad "what's happening" prompts.
     const resp = await fetch(`${API_BASE}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({
+        question,
+        captured_at: new Date().toISOString(),
+        captured_window_hours: 48,
+      }),
       signal: controller.signal,
     });
     const body = (await resp.json()) as AskResponse;
