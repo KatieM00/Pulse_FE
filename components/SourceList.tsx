@@ -19,13 +19,28 @@ const BARBADOS_TZ = "America/Barbados";
 
 function formatDate(capturedAt: string | null | undefined): string {
   if (!capturedAt) return "";
-  const date = new Date(capturedAt);
+  // Date-only API values describe a Barbados calendar date, not midnight UTC.
+  const value = /^\d{4}-\d{2}-\d{2}$/.test(capturedAt)
+    ? `${capturedAt}T12:00:00Z`
+    : capturedAt;
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-BB", {
     timeZone: BARBADOS_TZ,
     day: "numeric",
     month: "short",
     year: "numeric",
+  }).format(date);
+}
+
+function formatBroadcastTime(segmentAt: string | null | undefined): string {
+  if (!segmentAt || !segmentAt.includes("T")) return "";
+  const date = new Date(segmentAt);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-BB", {
+    timeZone: BARBADOS_TZ,
+    hour: "numeric",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -137,36 +152,24 @@ function BadgeChip({ badge }: { badge: Badge }) {
 
 function RadioStationArt({
   badge,
-  isPlaying,
-  progressPct,
 }: {
   badge: Extract<Badge, { kind: "radio" }>;
-  isPlaying: boolean;
-  progressPct: number;
 }) {
   const freq = badge.frequency;
   return (
-    <>
-      <div className={styles.previewStation}>
-        <span className={styles.previewStationName}>
-          {badge.stationName.replace(/\s+\d+(\.\d+)?\s*$/, "").slice(0, 14)}
-        </span>
-        {freq != null && (
-          <span className={styles.previewFrequency}>{freq.toFixed(1)}</span>
-        )}
-        <span className={styles.previewStationName} style={{ fontSize: 10, opacity: 0.7 }}>
-          FM
-        </span>
-      </div>
-      {isPlaying && (
-        <div className={styles.previewProgress} aria-hidden="true">
-          <div
-            className={styles.previewProgressFill}
-            style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
-          />
-        </div>
+    <div className={styles.previewStation}>
+      <span className={styles.previewStationName}>
+        {badge.stationName
+          .replace(/\s+\d+(\.\d+)?(?:\s*FM)?$/i, "")
+          .slice(0, 14)}
+      </span>
+      {freq != null && (
+        <span className={styles.previewFrequency}>{freq.toFixed(1)}</span>
       )}
-    </>
+      <span className={styles.previewStationName} style={{ fontSize: 10, opacity: 0.7 }}>
+        FM
+      </span>
+    </div>
   );
 }
 
@@ -208,6 +211,7 @@ function RadioPlayer({
 }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [progressPct, setProgressPct] = useState(0);
 
   useEffect(() => {
     const el = ref.current;
@@ -217,10 +221,7 @@ function RadioPlayer({
     }
   }, [activeClipKey, myKey]);
 
-  function toggle(e: React.MouseEvent<HTMLButtonElement>) {
-    // Prevent the wrapping card link from triggering navigation.
-    e.preventDefault();
-    e.stopPropagation();
+  function toggle() {
     const el = ref.current;
     if (!el) return;
     if (isPlaying) {
@@ -254,13 +255,28 @@ function RadioPlayer({
           )}
         </span>
       </button>
+      {isPlaying && (
+        <div className={styles.radioProgress} aria-hidden="true">
+          <div
+            className={styles.previewProgressFill}
+            style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
+          />
+        </div>
+      )}
       <audio
         ref={ref}
         src={source.embed}
         preload="metadata"
-        onTimeUpdate={() => {}}
+        onTimeUpdate={(event) => {
+          const audio = event.currentTarget;
+          if (audio.duration > 0) {
+            setProgressPct((audio.currentTime / audio.duration) * 100);
+          }
+        }}
+        onPause={() => setIsPlaying(false)}
         onEnded={() => {
           setIsPlaying(false);
+          setProgressPct(0);
         }}
         onError={() => setIsPlaying(false)}
       />
@@ -271,29 +287,15 @@ function RadioPlayer({
 function PreviewArea({
   source,
   badge,
-  activeClipKey,
-  myKey,
-  onPlayClip,
-  isPlayingThisCard,
-  progressPct,
 }: {
   source: SourceRef;
   badge: Badge;
-  activeClipKey: string | null;
-  myKey: string;
-  onPlayClip: (key: string) => void;
-  isPlayingThisCard: boolean;
-  progressPct: number;
 }) {
   const alt = `${(source.title || source.label) ?? "source"} preview`;
   return (
     <div className={styles.preview}>
       {badge.kind === "radio" ? (
-        <RadioStationArt
-          badge={badge}
-          isPlaying={isPlayingThisCard}
-          progressPct={progressPct}
-        />
+        <RadioStationArt badge={badge} />
       ) : (
         <>
           <PreviewImage source={source} alt={alt} />
@@ -308,14 +310,6 @@ function PreviewArea({
         </>
       )}
       <BadgeChip badge={badge} />
-      {badge.kind === "radio" && source.embed && (
-        <RadioPlayer
-          source={source}
-          activeClipKey={activeClipKey}
-          myKey={myKey}
-          onPlay={onPlayClip}
-        />
-      )}
     </div>
   );
 }
@@ -323,23 +317,24 @@ function PreviewArea({
 function SourceCard({
   source,
   activeClipKey,
-  progressPct,
-  playingKey,
   onPlayClip,
 }: {
   source: SourceRef;
   activeClipKey: string | null;
-  progressPct: number;
-  playingKey: string | null;
   onPlayClip: (key: string) => void;
 }) {
   const cardKey = `${source.kind}:${source.n}:${source.embed}`;
   const linked = source.url.startsWith("http");
   const host = linked ? hostname(source.url) : "";
-  const dateLabel = formatDate(source.captured_at);
+  const sourceTimestamp = source.kind === "radio"
+    ? source.segment_at || source.captured_at
+    : source.captured_at;
+  const dateLabel = formatDate(sourceTimestamp);
+  const broadcastTime = source.kind === "radio"
+    ? formatBroadcastTime(sourceTimestamp)
+    : "";
   const titleText = source.title || source.label;
   const badge = badgeFor(source);
-  const isPlayingThisCard = playingKey === cardKey;
 
   // Two-line, comma-joined attribution: "@laurenjohiggins • TikTok"
   const attributionParts: string[] = [];
@@ -356,18 +351,16 @@ function SourceCard({
       <PreviewArea
         source={source}
         badge={badge}
-        activeClipKey={activeClipKey}
-        myKey={cardKey}
-        onPlayClip={onPlayClip}
-        isPlayingThisCard={isPlayingThisCard}
-        progressPct={progressPct}
       />
       <div className={styles.body}>
         <div className={styles.titleRow}>
           <div className={styles.title}>{titleText}</div>
           {dateLabel && (
-            <time className={styles.date} dateTime={source.captured_at || undefined}>
-              {dateLabel}
+            <time className={styles.date} dateTime={sourceTimestamp || undefined}>
+              <span>{dateLabel}</span>
+              {broadcastTime && (
+                <span className={styles.broadcastTime}>Aired {broadcastTime}</span>
+              )}
             </time>
           )}
         </div>
@@ -393,49 +386,40 @@ function SourceCard({
 
   if (linked) {
     return (
-      <a
-        href={source.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={titleText}
-        className={styles.card}
-      >
-        {inner}
-      </a>
+      <div className={styles.card}>
+        <a
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={titleText}
+          className={styles.cardLink}
+        >
+          {inner}
+        </a>
+        {source.kind === "radio" && source.embed && (
+          <RadioPlayer
+            source={source}
+            activeClipKey={activeClipKey}
+            myKey={cardKey}
+            onPlay={onPlayClip}
+          />
+        )}
+      </div>
     );
   }
-  return <div className={styles.card}>{inner}</div>;
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardLink}>{inner}</div>
+    </div>
+  );
 }
 
 export default function SourceList({ sources }: { sources: SourceRef[] }) {
   const [activeClipKey, setActiveClipKey] = useState<string | null>(null);
-  const [progressPct, setProgressPct] = useState(0);
   const [expanded, setExpanded] = useState(false);
 
   // Stop any active radio clip when the list unmounts.
   useEffect(() => () => setActiveClipKey(null), []);
-
-  // Drive a lightweight global progress ticker so any card can show
-  // its current playback position. Only one clip ever plays at a time.
-  useEffect(() => {
-    if (!activeClipKey) return;
-    let raf = 0;
-    const tick = () => {
-      const audios = document.querySelectorAll("audio");
-      let pct = 0;
-      for (const a of Array.from(audios)) {
-        const el = a as HTMLAudioElement;
-        if (!el.paused && el.duration > 0) {
-          pct = (el.currentTime / el.duration) * 100;
-          break;
-        }
-      }
-      setProgressPct(pct);
-      raf = window.requestAnimationFrame(tick);
-    };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
-  }, [activeClipKey]);
 
   const handlePlayClip = useCallback((key: string) => {
     setActiveClipKey(key);
@@ -462,8 +446,6 @@ export default function SourceList({ sources }: { sources: SourceRef[] }) {
           key={`${src.kind}-${src.n}`}
           source={src}
           activeClipKey={activeClipKey}
-          progressPct={progressPct}
-          playingKey={activeClipKey}
           onPlayClip={handlePlayClip}
         />
       ))}

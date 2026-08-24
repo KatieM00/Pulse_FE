@@ -21,21 +21,25 @@
 
 .card {
   position: relative;
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
   margin-bottom: 10px;
-  padding: 12px;
   border-radius: 14px;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
   background: #ffffff;
+  overflow: hidden;
+}
+
+.cardLink {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px;
   text-decoration: none;
   color: inherit;
 }
 
-.card:focus-visible {
+.cardLink:focus-visible {
   outline: 2px solid #EF9F27;
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .preview {
@@ -71,6 +75,8 @@
   padding: 3px 7px;
   border-radius: 999px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  z-index: 3;
+  pointer-events: none;
 }
 
 .previewBadge svg {
@@ -79,21 +85,24 @@
 
 .previewPlay {
   position: absolute;
-  inset: 0;
+  top: 36px;
+  left: 74px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0);
-  color: #ffffff;
+  padding: 0;
+  background: transparent;
+  color: #1A1A1A;
   border: none;
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 600;
-  z-index: 2;
+  z-index: 5;
 }
 
-.previewPlay:hover {
-  background: rgba(0, 0, 0, 0.25);
+.previewPlay:hover .playCircle {
+  transform: scale(1.05);
 }
 
 .previewPlay:focus-visible {
@@ -102,12 +111,12 @@
 }
 
 .previewPlay[aria-pressed="true"] {
-  background: rgba(0, 0, 0, 0.45);
+  background: transparent;
 }
 
 .playCircle {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
   color: #1A1A1A;
@@ -115,6 +124,7 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 120ms ease;
 }
 
 .previewStation {
@@ -122,35 +132,36 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0;
   color: #ffffff;
-  text-align: center;
-  padding: 6px;
+  text-align: left;
+  padding: 10px 8px;
   background: linear-gradient(135deg, #1F2937 0%, #0B1220 100%);
 }
 
 .previewStationName {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.3px;
   line-height: 1.05;
 }
 
 .previewFrequency {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   letter-spacing: 0.5px;
 }
 
-.previewProgress {
+.radioProgress {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 97px;
+  left: 12px;
+  width: 88px;
   height: 3px;
   background: rgba(255, 255, 255, 0.2);
+  z-index: 6;
 }
 
 .previewProgressFill {
@@ -181,7 +192,7 @@
 
 .titleRow {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
@@ -198,10 +209,21 @@
 }
 
 .date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   flex-shrink: 0;
   font-size: 11px;
   color: #9CA3AF;
+  line-height: 1.25;
   white-space: nowrap;
+}
+
+.broadcastTime {
+  margin-top: 2px;
+  color: #6B7280;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .attribution {
@@ -213,6 +235,10 @@
 }
 
 .reason {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   margin-top: 6px;
   color: #374151;
   font-size: 12px;
