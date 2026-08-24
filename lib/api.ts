@@ -1,4 +1,4 @@
-import { AskResponse } from "./types";
+import { AskResponse, FeedResponse } from "./types";
 
 // In production the static export is served by Caddy, which proxies
 // same-origin /api/* to the Python API service on pulse-new. In dev,
@@ -30,6 +30,25 @@ export async function askPulse(question: string): Promise<AskResponse> {
       throw new Error(body.error ?? `ask failed (${resp.status})`);
     }
     return body;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchFeed(limit = 8): Promise<FeedResponse> {
+  const controller = new AbortController();
+  // Feed reads are local SQL + bounded preview enrichment; cap tightly
+  // so a stalled /api/* proxy does not freeze the home page.
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const resp = await fetch(
+      `${API_BASE}/api/feed?limit=${Math.max(1, Math.min(limit, 50))}`,
+      { signal: controller.signal, cache: "no-store" },
+    );
+    if (!resp.ok) {
+      throw new Error(`feed failed (${resp.status})`);
+    }
+    return (await resp.json()) as FeedResponse;
   } finally {
     clearTimeout(timeout);
   }

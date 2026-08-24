@@ -3,34 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { EVENTS, TRAVEL_SIGNALS, CATEGORY_COLORS, CATEGORY_LABELS } from "@/lib/data";
-import { Category } from "@/lib/types";
+import { EVENTS } from "@/lib/data";
 import EventRow from "@/components/EventRow";
-import FilterPill from "@/components/FilterPill";
-import TravelStrip from "@/components/TravelStrip";
-
-const ALL_CATEGORIES: Category[] = ["soca", "beach", "music", "culture", "market"];
+import HomeFeed from "@/components/HomeFeed";
 
 export default function HomePage() {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const filteredEvents = selectedCategory
-    ? EVENTS.filter((e) => e.category === selectedCategory)
-    : EVENTS;
-
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (searchValue.trim()) {
-      router.push(`/chat?q=${encodeURIComponent(searchValue.trim())}`);
+    const trimmed = searchValue.trim();
+    if (trimmed) {
+      router.push(`/chat?q=${encodeURIComponent(trimmed)}`);
     }
-  }
-
-  function handleWhatsOn() {
-    router.push("/chat?q=What%27s+on+today%3F");
   }
 
   return (
@@ -191,7 +179,7 @@ export default function HomePage() {
       )}
 
       {/* Hero */}
-      <section style={{ padding: "32px 20px 24px", textAlign: "center" }}>
+      <section style={{ padding: "32px 20px 20px", textAlign: "center" }}>
         <h1
           style={{
             fontSize: 26,
@@ -202,7 +190,7 @@ export default function HomePage() {
             letterSpacing: -0.5,
           }}
         >
-          What&apos;s the vibe tonight?
+          What&apos;s the vibe today?
         </h1>
         <p
           style={{
@@ -212,25 +200,36 @@ export default function HomePage() {
             lineHeight: 1.5,
           }}
         >
-          Live from radio, news and social, across the Caribbean.
+          Live from radio, news and social, across Barbados.
         </p>
 
-        {/* Search */}
+        {/* Single, larger search control with embedded submit */}
         <form onSubmit={handleSearch} role="search">
-          <div style={{ position: "relative", marginBottom: 14 }}>
-            <label
-              htmlFor="pulse-search"
-              style={{
-                position: "absolute",
-                width: 1,
-                height: 1,
-                overflow: "hidden",
-                clip: "rect(0,0,0,0)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Search Pulse
-            </label>
+          <label
+            htmlFor="pulse-search"
+            style={{
+              position: "absolute",
+              width: 1,
+              height: 1,
+              overflow: "hidden",
+              clip: "rect(0,0,0,0)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Search Pulse
+          </label>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "stretch",
+              minHeight: 56,
+              borderRadius: 14,
+              border: "0.5px solid rgba(0,0,0,0.15)",
+              background: "#FAFAFA",
+              transition: "border-color 0.15s, box-shadow 0.15s",
+            }}
+          >
             <input
               id="pulse-search"
               type="search"
@@ -238,14 +237,14 @@ export default function HomePage() {
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Ask Pulse anything"
               style={{
-                width: "100%",
-                padding: "13px 46px 13px 16px",
-                borderRadius: 12,
-                border: "0.5px solid rgba(0,0,0,0.15)",
-                fontSize: 15,
-                color: "#1A1A1A",
-                background: "#FAFAFA",
+                flex: 1,
+                minWidth: 0,
+                padding: "0 16px",
+                border: "none",
                 outline: "none",
+                background: "transparent",
+                fontSize: 16,
+                color: "#1A1A1A",
                 appearance: "none",
                 WebkitAppearance: "none",
               }}
@@ -254,26 +253,29 @@ export default function HomePage() {
               type="submit"
               aria-label="Search"
               style={{
-                position: "absolute",
-                right: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                background: "transparent",
+                width: 56,
+                minWidth: 44,
+                minHeight: 44,
+                margin: "4px",
+                borderRadius: 10,
                 border: "none",
+                background: "#EF9F27",
+                color: "#ffffff",
                 cursor: "pointer",
-                padding: 6,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
               }}
             >
               <svg
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#9CA3AF"
-                strokeWidth="1.8"
+                stroke="currentColor"
+                strokeWidth="2"
                 strokeLinecap="round"
+                strokeLinejoin="round"
                 aria-hidden="true"
               >
                 <circle cx="11" cy="11" r="8" />
@@ -281,60 +283,45 @@ export default function HomePage() {
               </svg>
             </button>
           </div>
-
-          {/* Primary CTA */}
-          <button
-            type="button"
-            onClick={handleWhatsOn}
-            style={{
-              width: "100%",
-              padding: "13px 20px",
-              borderRadius: 12,
-              border: "2px solid #EF9F27",
-              background: "#ffffff",
-              color: "#1A1A1A",
-              fontSize: 15,
-              fontWeight: 600,
-              cursor: "pointer",
-              letterSpacing: -0.1,
-            }}
-          >
-            What&apos;s on today?
-          </button>
         </form>
       </section>
 
-      {/* Filter row */}
-      <section aria-label="Category filters" style={{ padding: "0 0 0 20px", marginBottom: 20 }}>
-        <div
-          className="scrollbar-hide"
+      {/* Live feed */}
+      <div style={{ padding: "8px 16px 0" }}>
+        <header
           style={{
             display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            paddingRight: 20,
-            paddingBottom: 4,
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            margin: "0 4px 10px",
           }}
         >
-          {ALL_CATEGORIES.map((cat) => (
-            <FilterPill
-              key={cat}
-              category={cat}
-              selected={selectedCategory === cat}
-              onClick={() =>
-                setSelectedCategory(selectedCategory === cat ? null : cat)
-              }
-            />
-          ))}
-        </div>
-      </section>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#1A1A1A",
+            }}
+          >
+            What&apos;s on now?
+          </h2>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: "#9CA3AF",
+            }}
+          >
+            Latest source-backed signals across Barbados
+          </span>
+        </header>
+        <HomeFeed limit={8} />
+      </div>
 
       {/* Body content */}
-      <div style={{ padding: "0 16px" }}>
-        {/* Travel strip */}
-        <TravelStrip signals={TRAVEL_SIGNALS} />
-
-        {/* Events toggle */}
+      <div style={{ padding: "16px 16px 24px" }}>
+        {/* Events toggle — fixtures only until #14/#17 land live events. */}
         <section aria-label="Upcoming events">
           <button
             onClick={() => setEventsExpanded((v) => !v)}
@@ -352,24 +339,9 @@ export default function HomePage() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: eventsExpanded ? 12 : 0,
             }}
           >
-            <span>
-              Click to view upcoming events
-              {selectedCategory && (
-                <span
-                  style={{
-                    marginLeft: 8,
-                    fontSize: 12,
-                    color: CATEGORY_COLORS[selectedCategory],
-                    fontWeight: 600,
-                  }}
-                >
-                  · {CATEGORY_LABELS[selectedCategory]}
-                </span>
-              )}
-            </span>
+            <span>Click to view upcoming events</span>
             <svg
               width="16"
               height="16"
@@ -391,23 +363,10 @@ export default function HomePage() {
           </button>
 
           {eventsExpanded && (
-            <div style={{ marginTop: 8 }}>
-              {filteredEvents.length === 0 ? (
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: "#9CA3AF",
-                    textAlign: "center",
-                    padding: "24px 0",
-                  }}
-                >
-                  No events in this category right now.
-                </p>
-              ) : (
-                filteredEvents.map((event) => (
-                  <EventRow key={event.id} event={event} />
-                ))
-              )}
+            <div style={{ marginTop: 12 }}>
+              {EVENTS.map((event) => (
+                <EventRow key={event.id} event={event} />
+              ))}
             </div>
           )}
         </section>

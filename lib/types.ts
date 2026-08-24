@@ -27,14 +27,6 @@ export interface Event {
   };
 }
 
-export interface TravelSignal {
-  id: string;
-  headline: string;
-  detail: string;
-  source: string;
-  timestamp: string;
-}
-
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -46,18 +38,18 @@ export interface ChatMessage {
 /** A numbered, cited source returned by the Pulse ask API. */
 export type SourceKind = "radio" | "tiktok" | "instagram" | "youtube" | "link" | "internal";
 
-export interface SourceRef {
-  n: number;
-  label: string;
-  url: string;
-  kind: SourceKind;
-  /** radio: audio URL; tiktok: video id; instagram: shortcode; youtube: video id */
+/**
+ * Base card geometry shared by Ask citations and the Home feed.
+ *
+ * Issue #26 introduced the visual + media contract; issue #30 reused
+ * it for the live ``GET /api/feed`` response so both surfaces render
+ * through the same component.
+ */
+export interface SourceCardBase {
+  /** Radio: audio URL; tiktok: video id; instagram: shortcode; youtube: video id. */
   embed: string;
   /** ISO timestamp for the captured radio segment. */
   segment_at?: string;
-  /** Present in evidence but not cited inline — shown as "related". */
-  uncited?: boolean;
-  /** Issue #26 — display fields hydrated server-side. */
   /** Human-readable title (station name, social post title, page title). */
   title?: string | null;
   /** Source identity (handle, site name, "FM broadcast"). */
@@ -66,10 +58,36 @@ export interface SourceRef {
   captured_at?: string | null;
   /** Direct CDN preview image (signed URLs expire per answer). */
   thumbnail_url?: string | null;
-  /** Single-sentence explanation of why this card was returned. */
-  reason?: string | null;
   /** Radio only — broadcast frequency in MHz. */
   station_frequency_mhz?: number | null;
+}
+
+export interface SourceRef extends SourceCardBase {
+  n: number;
+  label: string;
+  url: string;
+  kind: SourceKind;
+  /** Present in evidence but not cited inline — shown as "related". */
+  uncited?: boolean;
+  /** Single-sentence explanation of why this card was returned. */
+  reason?: string | null;
+}
+
+/**
+ * Home feed entry — same display contract as a Chat citation, plus the
+ * server-typed source kind and excerpt text rendered above the card.
+ */
+export interface FeedItem extends SourceCardBase {
+  source_type: string;
+  label: string;
+  /** Short, server-rendered excerpt (radio chunk, article body, or title fallback). */
+  text: string;
+  url: string;
+  kind: SourceKind;
+}
+
+export interface FeedResponse {
+  items: FeedItem[];
 }
 
 export interface AskResponse {

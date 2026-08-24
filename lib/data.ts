@@ -1,4 +1,4 @@
-import { Event, TravelSignal } from "./types";
+import { Event } from "./types";
 
 export const EVENTS: Event[] = [
   {
@@ -277,30 +277,6 @@ export const EVENTS: Event[] = [
       label: "medium",
       reason: "Recurring informal event corroborated by consistent social signal patterns.",
     },
-  },
-];
-
-export const TRAVEL_SIGNALS: TravelSignal[] = [
-  {
-    id: "trv-001",
-    headline: "Route 4 delayed near Warrens roundabout",
-    detail: "Buses running approximately 20 minutes late northbound due to road works on Highway 2.",
-    source: "Barbados Transport Board",
-    timestamp: "2026-08-01T09:15:00Z",
-  },
-  {
-    id: "trv-002",
-    headline: "Adams-Barrow-Cummins Highway closed (southbound)",
-    detail: "ABC Highway southbound closed between Wildey and Graeme Hall. Divert via Highway 7.",
-    source: "Ministry of Transport & Works",
-    timestamp: "2026-08-01T07:45:00Z",
-  },
-  {
-    id: "trv-003",
-    headline: "Barbados Ferry service operating normally",
-    detail: "Express services to Port of Spain and Bridgetown Harbour running on schedule today.",
-    source: "Barbados Port Authority",
-    timestamp: "2026-08-01T06:00:00Z",
   },
 ];
 
