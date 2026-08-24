@@ -8,19 +8,15 @@
   justify-content: space-between;
   gap: 8px;
   margin: 0 4px 10px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: #9CA3AF;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A1A1A;
 }
 
 .count {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #9CA3AF;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
 .card {
@@ -28,7 +24,7 @@
   display: flex;
   align-items: stretch;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   padding: 12px;
   border-radius: 14px;
   border: 0.5px solid rgba(0, 0, 0, 0.08);
@@ -65,14 +61,20 @@
   position: absolute;
   top: 6px;
   left: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #ffffff;
-  font-size: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  color: #1A1A1A;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.previewBadge svg {
+  display: block;
 }
 
 .previewPlay {
@@ -81,12 +83,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0);
   color: #ffffff;
   border: none;
   cursor: pointer;
   font-size: 11px;
   font-weight: 600;
+  z-index: 2;
+}
+
+.previewPlay:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .previewPlay:focus-visible {
@@ -94,19 +101,65 @@
   outline-offset: 2px;
 }
 
-.previewFrequency {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 6px;
+.previewPlay[aria-pressed="true"] {
+  background: rgba(0, 0, 0, 0.45);
 }
 
-.fallbackGlyph {
+.playCircle {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1A1A1A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.previewStation {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #ffffff;
+  text-align: center;
+  padding: 6px;
+  background: linear-gradient(135deg, #1F2937 0%, #0B1220 100%);
+}
+
+.previewStationName {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1.05;
+}
+
+.previewFrequency {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.previewProgress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.previewProgressFill {
+  height: 100%;
+  background: #EF9F27;
+  transition: width 0.1s linear;
+}
+
+.previewGlyph {
   position: absolute;
   inset: 0;
   display: flex;
@@ -115,21 +168,6 @@
   font-size: 28px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.85);
-  background: linear-gradient(135deg, #374151 0%, #1F2937 100%);
-}
-
-.fallbackWaveform {
-  position: absolute;
-  inset: 8px;
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-}
-
-.fallbackWaveform > span {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.75);
-  border-radius: 2px;
 }
 
 .body {
@@ -138,17 +176,32 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding-right: 18px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .title {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  color: #1A1A1A;
   font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.date {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #9CA3AF;
+  white-space: nowrap;
 }
 
 .attribution {
@@ -160,45 +213,29 @@
 }
 
 .reason {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  margin-top: 4px;
+  margin-top: 6px;
   color: #374151;
   font-size: 12px;
   line-height: 1.4;
 }
 
 .reasonLabel {
-  font-size: 10px;
-  font-weight: 600;
-  color: #9CA3AF;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin-bottom: 2px;
-}
-
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 4px;
-  font-size: 11px;
-  color: #6B7280;
-  line-height: 1.3;
-}
-
-.citation {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-  font-size: 11px;
   font-weight: 700;
+  color: #1A1A1A;
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
   color: #9CA3AF;
 }
 
 .related {
+  position: absolute;
+  top: 10px;
+  right: 14px;
   display: inline-flex;
   align-items: center;
   height: 18px;
@@ -208,39 +245,6 @@
   color: #EF9F27;
   border: 1px solid rgba(239, 159, 39, 0.5);
   border-radius: 6px;
-}
-
-.player {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: #FAFAFA;
-  border: 0.5px solid rgba(0, 0, 0, 0.06);
-}
-
-.playerTime {
-  font-size: 11px;
-  color: #6B7280;
-  font-variant-numeric: tabular-nums;
-  min-width: 36px;
-  text-align: center;
-}
-
-.playerProgress {
-  flex: 1;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.playerProgressFill {
-  height: 100%;
-  background: #EF9F27;
-  transition: width 0.1s linear;
 }
 
 .moreButton {

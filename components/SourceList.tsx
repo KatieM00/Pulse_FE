@@ -6,10 +6,6 @@ import styles from "./SourceList.module.css";
 
 const VISIBLE_COUNT = 4;
 
-interface Props {
-  sources: SourceRef[];
-}
-
 const SCREEN_READER_ONLY: React.CSSProperties = {
   position: "absolute",
   width: 1,
@@ -19,18 +15,17 @@ const SCREEN_READER_ONLY: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-/** Returns a short Barbados-locale date string for the captured_at
- * timestamp, or an empty string when the value is missing or invalid. */
-function formatCaptured(capturedAt: string | null | undefined): string {
+const BARBADOS_TZ = "America/Barbados";
+
+function formatDate(capturedAt: string | null | undefined): string {
   if (!capturedAt) return "";
   const date = new Date(capturedAt);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-BB", {
-    timeZone: "America/Barbados",
+    timeZone: BARBADOS_TZ,
     day: "numeric",
     month: "short",
-    hour: "numeric",
-    minute: "2-digit",
+    year: "numeric",
   }).format(date);
 }
 
@@ -42,40 +37,155 @@ function hostname(url: string): string {
   }
 }
 
-/** Small horizontal bar visual used as the radio station fallback artwork. */
-function RadioWaveform() {
-  const bars = [4, 10, 6, 14, 8, 18, 12, 7, 16, 9, 5, 11];
+type Badge =
+  | { kind: "tiktok" }
+  | { kind: "instagram" }
+  | { kind: "youtube" }
+  | { kind: "radio"; stationName: string; frequency: number | null }
+  | { kind: "pulse" }
+  | { kind: "web" };
+
+function badgeFor(source: SourceRef): Badge {
+  if (source.kind === "radio") {
+    return {
+      kind: "radio",
+      stationName: source.title || source.label || "Radio",
+      frequency: source.station_frequency_mhz ?? null,
+    };
+  }
+  if (source.kind === "tiktok") return { kind: "tiktok" };
+  if (source.kind === "instagram") return { kind: "instagram" };
+  if (source.kind === "youtube") return { kind: "youtube" };
+  if (source.kind === "internal") return { kind: "pulse" };
+  return { kind: "web" };
+}
+
+function BadgeChip({ badge }: { badge: Badge }) {
+  const iconSize = 10;
+  switch (badge.kind) {
+    case "tiktok":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="#1A1A1A"
+              d="M16.5 3a5 5 0 0 0 4.5 4.5v3a8 8 0 0 1-4.5-1.4v6.9a6 6 0 1 1-6-6c.34 0 .67.03 1 .09v3.05a3 3 0 1 0 2 2.81V3h3Z"
+            />
+          </svg>
+          TikTok
+        </span>
+      );
+    case "instagram":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#1A1A1A" strokeWidth="1.8" />
+            <circle cx="12" cy="12" r="4" fill="none" stroke="#1A1A1A" strokeWidth="1.8" />
+            <circle cx="17.5" cy="6.5" r="1" fill="#1A1A1A" />
+          </svg>
+          Instagram
+        </span>
+      );
+    case "youtube":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="3" fill="#1A1A1A" />
+            <polygon points="10,8 16,12 10,16" fill="#ffffff" />
+          </svg>
+          YouTube
+        </span>
+      );
+    case "radio":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M4 14a8 8 0 0 1 16 0M7 14a5 5 0 0 1 10 0M10 14a2 2 0 0 1 4 0"
+              fill="none"
+              stroke="#1A1A1A"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <circle cx="12" cy="14" r="1.5" fill="#1A1A1A" />
+          </svg>
+          Radio
+        </span>
+      );
+    case "pulse":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="#1A1A1A" strokeWidth="1.8" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" fill="none" stroke="#1A1A1A" strokeWidth="1.4" />
+          </svg>
+          Pulse
+        </span>
+      );
+    case "web":
+      return (
+        <span className={styles.previewBadge}>
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none" stroke="#1A1A1A" strokeWidth="1.8" />
+            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" fill="none" stroke="#1A1A1A" strokeWidth="1.4" />
+          </svg>
+          Web
+        </span>
+      );
+  }
+}
+
+function RadioStationArt({
+  badge,
+  isPlaying,
+  progressPct,
+}: {
+  badge: Extract<Badge, { kind: "radio" }>;
+  isPlaying: boolean;
+  progressPct: number;
+}) {
+  const freq = badge.frequency;
   return (
-    <div className={styles.fallbackWaveform} aria-hidden="true">
-      {bars.map((height, idx) => (
-        <span key={idx} style={{ height: `${height * 3}px` }} />
-      ))}
-    </div>
+    <>
+      <div className={styles.previewStation}>
+        <span className={styles.previewStationName}>
+          {badge.stationName.replace(/\s+\d+(\.\d+)?\s*$/, "").slice(0, 14)}
+        </span>
+        {freq != null && (
+          <span className={styles.previewFrequency}>{freq.toFixed(1)}</span>
+        )}
+        <span className={styles.previewStationName} style={{ fontSize: 10, opacity: 0.7 }}>
+          FM
+        </span>
+      </div>
+      {isPlaying && (
+        <div className={styles.previewProgress} aria-hidden="true">
+          <div
+            className={styles.previewProgressFill}
+            style={{ width: `${Math.min(100, Math.max(0, progressPct))}%` }}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
-function FallbackGlyph({ letter }: { letter: string }) {
-  return <div className={styles.fallbackGlyph}>{letter.toUpperCase()}</div>;
-}
-
-function Preview({
-  src,
+function PreviewImage({
+  source,
   alt,
-  fallback,
 }: {
-  src: string | null | undefined;
+  source: SourceRef;
   alt: string;
-  fallback: React.ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
-  if (!src || failed) return <>{fallback}</>;
+  if (!source.thumbnail_url || failed) return null;
   return (
-    /* Static export runs images unoptimized; preview hosts are dynamic
-       and ephemeral so next/image adds nothing here. */
+    /* Static export runs images unoptimized; preview hosts are
+       dynamic and ephemeral so next/image adds nothing here. */
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
       className={styles.previewImage}
-      src={src}
+      src={source.thumbnail_url}
       alt={alt}
       loading="lazy"
       decoding="async"
@@ -85,79 +195,32 @@ function Preview({
   );
 }
 
-const BADGE_TEXT: Record<SourceRef["kind"], string> = {
-  radio: "Radio",
-  tiktok: "TikTok",
-  instagram: "Instagram",
-  youtube: "YouTube",
-  link: "Web",
-  internal: "Source",
-};
-
-function PreviewArea({ source }: { source: SourceRef }) {
-  const fallbackLetter = (source.title || source.label || "?").charAt(0);
-  const alt = `${BADGE_TEXT[source.kind]} preview for ${source.title || source.label}`;
-
-  let fallback: React.ReactNode;
-  if (source.kind === "radio") {
-    fallback = (
-      <>
-        <RadioWaveform />
-        <div className={styles.fallbackGlyph} style={{ fontSize: 16 }}>
-          ◉ FM
-        </div>
-      </>
-    );
-  } else if (source.kind === "tiktok") {
-    fallback = <FallbackGlyph letter="♪" />;
-  } else if (source.kind === "instagram") {
-    fallback = <FallbackGlyph letter="◎" />;
-  } else if (source.kind === "youtube") {
-    fallback = <FallbackGlyph letter="▶" />;
-  } else {
-    fallback = <FallbackGlyph letter={fallbackLetter} />;
-  }
-
-  return (
-    <div className={styles.preview} aria-hidden={source.kind === "radio" ? undefined : true}>
-      <Preview src={source.thumbnail_url} alt={alt} fallback={fallback} />
-      <div className={styles.previewBadge}>{BADGE_TEXT[source.kind]}</div>
-      {source.kind === "radio" && source.station_frequency_mhz != null && (
-        <div className={styles.previewFrequency}>
-          {source.station_frequency_mhz.toFixed(1)}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Inline audio player; one-at-a-time enforcement is handled by
- * the parent <SourceList> via shared state. */
 function RadioPlayer({
-  src,
-  activeKey,
+  source,
+  activeClipKey,
   myKey,
   onPlay,
 }: {
-  src: string;
-  activeKey: string | null;
+  source: SourceRef;
+  activeClipKey: string | null;
   myKey: string;
   onPlay: (key: string) => void;
 }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (activeKey && activeKey !== myKey && !el.paused) {
+    if (activeClipKey && activeClipKey !== myKey && !el.paused) {
       el.pause();
     }
-  }, [activeKey, myKey]);
+  }, [activeClipKey, myKey]);
 
-  function toggle() {
+  function toggle(e: React.MouseEvent<HTMLButtonElement>) {
+    // Prevent the wrapping card link from triggering navigation.
+    e.preventDefault();
+    e.stopPropagation();
     const el = ref.current;
     if (!el) return;
     if (isPlaying) {
@@ -170,167 +233,209 @@ function RadioPlayer({
   }
 
   return (
-    <div className={styles.player}>
+    <>
       <button
         type="button"
+        className={styles.previewPlay}
         onClick={toggle}
         aria-label={isPlaying ? `Pause radio clip` : `Play radio clip`}
         aria-pressed={isPlaying}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 999,
-          border: "none",
-          background: isPlaying ? "#EF9F27" : "#1A1A1A",
-          color: "#ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          flexShrink: 0,
-        }}
       >
-        {isPlaying ? (
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-            <rect x="1" y="1" width="3" height="8" fill="currentColor" />
-            <rect x="6" y="1" width="3" height="8" fill="currentColor" />
-          </svg>
-        ) : (
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-            <polygon points="2,1 9,5 2,9" fill="currentColor" />
-          </svg>
-        )}
+        <span className={styles.playCircle}>
+          {isPlaying ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <rect x="2" y="2" width="3" height="10" fill="currentColor" />
+              <rect x="9" y="2" width="3" height="10" fill="currentColor" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+              <polygon points="3,2 12,7 3,12" fill="currentColor" />
+            </svg>
+          )}
+        </span>
       </button>
-      <span className={styles.playerTime} aria-live="off">
-        {formatClock(elapsed)}
-      </span>
-      <div
-        className={styles.playerProgress}
-        role="progressbar"
-        aria-label="Clip progress"
-        aria-valuemin={0}
-        aria-valuemax={duration || 0}
-        aria-valuenow={elapsed}
-      >
-        <div
-          className={styles.playerProgressFill}
-          style={{
-            width: duration > 0 ? `${(elapsed / duration) * 100}%` : "0%",
-          }}
-        />
-      </div>
-      <span className={styles.playerTime}>{formatClock(duration)}</span>
       <audio
         ref={ref}
-        src={src}
+        src={source.embed}
         preload="metadata"
-        onLoadedMetadata={(e) =>
-          setDuration((e.currentTarget.duration || 0) | 0)
-        }
-        onTimeUpdate={(e) => setElapsed((e.currentTarget.currentTime || 0) | 0)}
+        onTimeUpdate={() => {}}
         onEnded={() => {
           setIsPlaying(false);
-          setElapsed(0);
         }}
         onError={() => setIsPlaying(false)}
       />
-    </div>
+    </>
   );
 }
 
-function formatClock(totalSeconds: number): string {
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return "0:00";
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+function PreviewArea({
+  source,
+  badge,
+  activeClipKey,
+  myKey,
+  onPlayClip,
+  isPlayingThisCard,
+  progressPct,
+}: {
+  source: SourceRef;
+  badge: Badge;
+  activeClipKey: string | null;
+  myKey: string;
+  onPlayClip: (key: string) => void;
+  isPlayingThisCard: boolean;
+  progressPct: number;
+}) {
+  const alt = `${(source.title || source.label) ?? "source"} preview`;
+  return (
+    <div className={styles.preview}>
+      {badge.kind === "radio" ? (
+        <RadioStationArt
+          badge={badge}
+          isPlaying={isPlayingThisCard}
+          progressPct={progressPct}
+        />
+      ) : (
+        <>
+          <PreviewImage source={source} alt={alt} />
+          {badge.kind === "tiktok" && (
+            <div className={styles.previewGlyph} aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
+                <circle cx="12" cy="12" r="12" fill="rgba(0,0,0,0.45)" />
+                <polygon points="10,8 17,12 10,16" />
+              </svg>
+            </div>
+          )}
+        </>
+      )}
+      <BadgeChip badge={badge} />
+      {badge.kind === "radio" && source.embed && (
+        <RadioPlayer
+          source={source}
+          activeClipKey={activeClipKey}
+          myKey={myKey}
+          onPlay={onPlayClip}
+        />
+      )}
+    </div>
+  );
 }
 
 function SourceCard({
   source,
   activeClipKey,
+  progressPct,
+  playingKey,
   onPlayClip,
 }: {
   source: SourceRef;
   activeClipKey: string | null;
+  progressPct: number;
+  playingKey: string | null;
   onPlayClip: (key: string) => void;
 }) {
   const cardKey = `${source.kind}:${source.n}:${source.embed}`;
   const linked = source.url.startsWith("http");
   const host = linked ? hostname(source.url) : "";
-  const captured = formatCaptured(source.captured_at);
-  const showCitation = !source.uncited;
+  const dateLabel = formatDate(source.captured_at);
   const titleText = source.title || source.label;
-  const attribution =
-    source.publisher ||
-    (host ? host : null) ||
-    (source.kind === "internal" ? "Pulse source" : null);
+  const badge = badgeFor(source);
+  const isPlayingThisCard = playingKey === cardKey;
 
-  const cardBody = (
+  // Two-line, comma-joined attribution: "@laurenjohiggins • TikTok"
+  const attributionParts: string[] = [];
+  if (source.publisher) attributionParts.push(source.publisher);
+  else if (host) attributionParts.push(host);
+  else if (source.kind === "internal") attributionParts.push("Pulse Barbados");
+  if (badge.kind === "web" && !source.publisher && host) {
+    attributionParts.push(host);
+  }
+  const attribution = attributionParts.join(" · ");
+
+  const inner = (
     <>
-      <PreviewArea source={source} />
+      <PreviewArea
+        source={source}
+        badge={badge}
+        activeClipKey={activeClipKey}
+        myKey={cardKey}
+        onPlayClip={onPlayClip}
+        isPlayingThisCard={isPlayingThisCard}
+        progressPct={progressPct}
+      />
       <div className={styles.body}>
-        <div className={styles.title}>{titleText}</div>
-        {(attribution || captured) && (
-          <div className={styles.attribution}>
-            {[attribution, captured].filter(Boolean).join(" · ")}
+        <div className={styles.titleRow}>
+          <div className={styles.title}>{titleText}</div>
+          {dateLabel && (
+            <time className={styles.date} dateTime={source.captured_at || undefined}>
+              {dateLabel}
+            </time>
+          )}
+        </div>
+        {attribution && <div className={styles.attribution}>{attribution}</div>}
+        {source.reason && (
+          <div className={styles.reason}>
+            <span className={styles.reasonLabel}>Why this was returned: </span>
+            {source.reason}
           </div>
         )}
-        {source.reason && (
-          <>
-            <div className={styles.reasonLabel}>Why this was returned</div>
-            <div className={styles.reason}>{source.reason}</div>
-          </>
-        )}
       </div>
-      {showCitation && (
-        <span className={styles.citation} aria-label={`Citation number ${source.n}`}>
-          [{source.n}]
-        </span>
-      )}
-      {source.uncited && (
-        <span className={styles.related} style={{ position: "absolute", top: 10, right: 12 }}>
-          related
+      {source.uncited ? (
+        <span className={styles.related}>related</span>
+      ) : (
+        <span className={styles.chevron} aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </span>
       )}
     </>
   );
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {linked ? (
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={titleText}
-          className={styles.card}
-        >
-          {cardBody}
-        </a>
-      ) : (
-        <div className={styles.card}>{cardBody}</div>
-      )}
-      {source.kind === "radio" && source.embed && (
-        <div style={{ marginTop: 6 }}>
-          <RadioPlayer
-            src={source.embed}
-            activeKey={activeClipKey}
-            myKey={cardKey}
-            onPlay={onPlayClip}
-          />
-        </div>
-      )}
-    </div>
-  );
+  if (linked) {
+    return (
+      <a
+        href={source.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={titleText}
+        className={styles.card}
+      >
+        {inner}
+      </a>
+    );
+  }
+  return <div className={styles.card}>{inner}</div>;
 }
 
-export default function SourceList({ sources }: Props) {
+export default function SourceList({ sources }: { sources: SourceRef[] }) {
   const [activeClipKey, setActiveClipKey] = useState<string | null>(null);
+  const [progressPct, setProgressPct] = useState(0);
   const [expanded, setExpanded] = useState(false);
 
-  // Stop any active radio clip when the list unmounts so audio does
-  // not keep playing in the background.
+  // Stop any active radio clip when the list unmounts.
   useEffect(() => () => setActiveClipKey(null), []);
+
+  // Drive a lightweight global progress ticker so any card can show
+  // its current playback position. Only one clip ever plays at a time.
+  useEffect(() => {
+    if (!activeClipKey) return;
+    let raf = 0;
+    const tick = () => {
+      const audios = document.querySelectorAll("audio");
+      let pct = 0;
+      for (const a of Array.from(audios)) {
+        const el = a as HTMLAudioElement;
+        if (!el.paused && el.duration > 0) {
+          pct = (el.currentTime / el.duration) * 100;
+          break;
+        }
+      }
+      setProgressPct(pct);
+      raf = window.requestAnimationFrame(tick);
+    };
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [activeClipKey]);
 
   const handlePlayClip = useCallback((key: string) => {
     setActiveClipKey(key);
@@ -349,7 +454,7 @@ export default function SourceList({ sources }: Props) {
       <div className={styles.header}>
         <span>Sources</span>
         <span className={styles.count}>
-          {ordered.length} {ordered.length === 1 ? "source" : "sources"}
+          {ordered.length} {ordered.length === 1 ? "result" : "results"}
         </span>
       </div>
       {visible.map((src) => (
@@ -357,6 +462,8 @@ export default function SourceList({ sources }: Props) {
           key={`${src.kind}-${src.n}`}
           source={src}
           activeClipKey={activeClipKey}
+          progressPct={progressPct}
+          playingKey={activeClipKey}
           onPlayClip={handlePlayClip}
         />
       ))}
