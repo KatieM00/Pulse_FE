@@ -219,84 +219,73 @@
   color: #374151;
 }
 
-.sourceList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.embeddedSources {
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.sourceListItem {
+/* Override the shared SourceList.module.css defaults for the smaller
+   tile embedded inside a recommendation card. We want the thumbnail,
+   the badge, the title, the date, the attribution, and the play
+   button all visible, just at a tighter size than the home-feed tile. */
+.embeddedSources > :global(.SourceList-module__0NUnXG__list) {
   margin: 0;
-  padding: 0;
 }
 
-.sourceListLink {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 5px 8px;
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.04);
-  color: #1F2937;
-  text-decoration: none;
-  border: 0;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  min-height: 22px;
+.embeddedSources :global(.SourceList-module__0NUnXG__card) {
+  margin-bottom: 0;
+  border-radius: 10px;
 }
 
-.sourceListLink:hover {
-  background: rgba(15, 23, 42, 0.08);
-  color: #0F172A;
+.embeddedSources :global(.SourceList-module__0NUnXG__cardLink) {
+  gap: 10px;
+  padding: 8px 10px;
 }
 
-.sourceKindBadge {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border-radius: 999px;
-  padding: 2px 6px;
+.embeddedSources :global(.SourceList-module__0NUnXG__preview) {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
 }
 
-.sourceListLabel {
-  flex: 1;
-  font-size: 12px;
-  font-weight: 600;
-  color: #111827;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+.embeddedSources :global(.SourceList-module__0NUnXG__title) {
+  font-size: 13px;
+  line-height: 1.25;
 }
 
-.sourceListHost {
+.embeddedSources :global(.SourceList-module__0NUnXG__attribution) {
   font-size: 11px;
-  color: #6B7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 50%;
 }
 
-.sourceListPlay {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.08);
-  color: #0F172A;
-  flex-shrink: 0;
+.embeddedSources :global(.SourceList-module__0NUnXG__reason) {
+  font-size: 11.5px;
+  line-height: 1.35;
+  margin-top: 4px;
+  -webkit-line-clamp: 2;
+}
+
+.embeddedSources :global(.SourceList-module__0NUnXG__previewPlay) {
+  top: 26px;
+  left: 52px;
+  width: 32px;
+  height: 32px;
+}
+
+.embeddedSources :global(.SourceList-module__0NUnXG__playCircle) {
+  width: 32px;
+  height: 32px;
+}
+
+.embeddedSources :global(.SourceList-module__0NUnXG__radioProgress) {
+  top: 70px;
+  left: 8px;
+  width: 64px;
+}
+
+.embeddedSources :global(.SourceList-module__0NUnXG__header) {
+  display: none;
 }
 
 .refinementTitle {
