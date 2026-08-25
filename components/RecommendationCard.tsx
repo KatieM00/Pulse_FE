@@ -87,31 +87,27 @@ function recommendationEvidenceToSourceRefs(
     const ev = evidence[idx];
     if (!ev.url || ev.url.length === 0) continue;
     const label = sourceLabel(ev);
+    const isRadio = ev.source_type === "radio";
+    const linkUrl = isRadio && ev.radio_station_website ? ev.radio_station_website : ev.url;
+    const embed = isRadio ? ev.radio_embed ?? "" : "";
+    const publisher = ev.publisher ?? (isRadio ? "FM broadcast" : null);
     refs.push({
       n: idx + 1,
-      kind: normaliseKind(ev.source_type),
-      url: ev.url,
+      kind: isRadio ? "radio" : normaliseKind(ev.source_type),
+      url: linkUrl,
       title: ev.title ?? null,
-      publisher: ev.publisher ?? null,
+      publisher,
       label,
       captured_at: ev.captured_at ?? null,
       segment_at: undefined,
       thumbnail_url: null,
-      embed: "",
+      embed,
       reason: ev.quote ?? null,
-      station_frequency_mhz: null,
+      station_frequency_mhz: ev.station_frequency_mhz ?? null,
       uncited: false,
     });
   }
   return refs;
-}
-
-function DistinctSourceTypes(
-  evidence: RecommendationEvidence[],
-): { count: number; types: string[] } {
-  const types = new Set<string>();
-  for (const ev of evidence) types.add(ev.source_type);
-  return { count: types.size, types: Array.from(types) };
 }
 
 export interface RecommendationCardProps {
@@ -119,10 +115,8 @@ export interface RecommendationCardProps {
 }
 
 export function RecommendationCard({ option }: RecommendationCardProps) {
-  const distinct = DistinctSourceTypes(option.evidence);
   const windowStart = option.event_window?.start ?? option.availability;
   const windowEnd = option.event_window?.end;
-  const status = option.verification === "verified" ? "verified" : "unverified";
   const sourceRefs = useMemo(
     () => recommendationEvidenceToSourceRefs(option),
     [option],
@@ -194,26 +188,6 @@ export function RecommendationCard({ option }: RecommendationCardProps) {
           ))}
         </div>
       ) : null}
-      <div className={styles.evidenceRow}>
-        <span
-          className={
-            status === "verified" ? styles.verifiedBadge : styles.unverifiedBadge
-          }
-        >
-          {status === "verified" ? "Verified by sources" : "Limited evidence"}
-        </span>
-        {option.evidence.length > 0 ? (
-          <span>
-            <span className={styles.evidenceCount}>
-              {option.evidence.length}
-            </span>{" "}
-            {option.evidence.length === 1 ? "source" : "sources"}
-            {distinct.count > 1 ? (
-              <> across {distinct.count} source types</>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
       {option.caveats && option.caveats.length > 0 ? (
         <ul className={styles.caveatList}>
           {option.caveats.map((caveat) => (

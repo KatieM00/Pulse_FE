@@ -130,6 +130,12 @@ export interface RecommendationEvidence {
   title: string | null;
   publisher: string | null;
   confidence: number | null;
+  /** Radio source: the public station site the card should open. */
+  radio_station_website?: string | null;
+  /** Radio source: broadcast frequency in MHz. */
+  station_frequency_mhz?: number | null;
+  /** Radio source: embedded audio URL for the in-card play button. */
+  radio_embed?: string | null;
 }
 
 /**
