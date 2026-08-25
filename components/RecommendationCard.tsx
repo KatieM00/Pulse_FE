@@ -100,7 +100,7 @@ function recommendationEvidenceToSourceRefs(
       label,
       captured_at: ev.captured_at ?? null,
       segment_at: undefined,
-      thumbnail_url: null,
+      thumbnail_url: ev.thumbnail_url ?? null,
       embed,
       reason: ev.quote ?? null,
       station_frequency_mhz: ev.station_frequency_mhz ?? null,

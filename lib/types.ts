@@ -130,6 +130,8 @@ export interface RecommendationEvidence {
   title: string | null;
   publisher: string | null;
   confidence: number | null;
+  /** Preview thumbnail URL (Instagram, TikTok, etc). */
+  thumbnail_url?: string | null;
   /** Radio source: the public station site the card should open. */
   radio_station_website?: string | null;
   /** Radio source: broadcast frequency in MHz. */
