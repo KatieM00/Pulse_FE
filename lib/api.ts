@@ -12,7 +12,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
 export const ASK_PIPELINE_VERSION =
   process.env.NEXT_PUBLIC_ASK_PIPELINE ?? "v3";
 
-export async function askPulse(question: string): Promise<AskResponse> {
+export async function askPulse(
+  question: string,
+  history: Array<{ role: "user" | "assistant"; text: string }> = [],
+): Promise<AskResponse> {
   const controller = new AbortController();
   // Specialist retrievers now run in parallel (issue #31). The worst-case
   // p95 target is 15s; leave headroom for the composer call.
@@ -24,6 +27,10 @@ export async function askPulse(question: string): Promise<AskResponse> {
     // captured_window_hours to bound the chunk scan; the structured
     // event and activity retrievers ignore it so evergreen attractions
     // are not dropped.
+    //
+    // ``conversation_history`` carries the last user/assistant turns in
+    // this chat so the composer can do follow-up reasoning against the
+    // graph. We cap at 8 entries on the server.
     const resp = await fetch(`${API_BASE}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -32,6 +39,7 @@ export async function askPulse(question: string): Promise<AskResponse> {
         captured_at: new Date().toISOString(),
         captured_window_hours: 48,
         pipeline: ASK_PIPELINE_VERSION,
+        conversation_history: history.slice(-8),
       }),
       signal: controller.signal,
     });

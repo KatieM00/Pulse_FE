@@ -137,8 +137,17 @@ function ChatContent() {
       );
     }, STATUS_INTERVAL_MS);
 
+    // Pull the previous user/assistant turns as conversation history so
+    // a follow-up like "what about nearby" can re-query the graph with
+    // the prior context already loaded.
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.text && !m.text.startsWith("Looking through"))
+      .slice(-8)
+      .map((m) => ({ role: m.role, text: m.text }));
+
     try {
-      const result = await askPulse(trimmed);
+      const result = await askPulse(trimmed, history);
       const composerDown =
         (result.warnings ?? []).some((w) =>
           (w ?? "").includes("composer"),
