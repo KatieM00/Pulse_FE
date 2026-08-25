@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   RecommendationEvidence,
   RecommendationOption,
@@ -8,7 +8,6 @@ import {
   SourceRef,
 } from "@/lib/types";
 import styles from "./RecommendationCard.module.css";
-import SourceList from "./SourceList";
 
 const BARBADOS_TZ = "America/Barbados";
 
@@ -112,6 +111,133 @@ function recommendationEvidenceToSourceRefs(
 
 export interface RecommendationCardProps {
   option: RecommendationOption;
+}
+
+function CompactSourceRow({ sources }: { sources: SourceRef[] }) {
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const audiosRef = useRef<Map<string, HTMLAudioElement | null>>(new Map());
+
+  function playSource(src: SourceRef) {
+    const url = src.embed || src.url;
+    if (!url || !url.endsWith(".m4a")) return;
+    const key = `${src.kind}:${src.n}`;
+    const el = audiosRef.current.get(key);
+    if (!el) return;
+    // Pause any other playing clips so only one plays at a time.
+    for (const [k, other] of audiosRef.current.entries()) {
+      if (other && k !== key && !other.paused) other.pause();
+    }
+    if (el.paused) {
+      setActiveKey(key);
+      void el.play().catch(() => {
+        setActiveKey(null);
+      });
+    } else {
+      el.pause();
+      setActiveKey((current) => (current === key ? null : current));
+    }
+  }
+
+  // Stop playback when this row unmounts.
+  useEffect(() => {
+    const audios = audiosRef.current;
+    return () => {
+      audios.forEach((el) => {
+        if (el && !el.paused) el.pause();
+      });
+    };
+  }, []);
+
+  return (
+    <ul className={styles.sourceList}>
+      {sources.slice(0, 3).map((src) => {
+        const host = hostFromUrl(src.url);
+        const isRadio = src.kind === "radio";
+        const isPlayable = isRadio && src.embed && src.embed.endsWith(".m4a");
+        const key = `${src.kind}:${src.n}`;
+        const active = activeKey === key;
+        const titleText = src.title || src.label || "Source";
+        return (
+          <li key={key} className={styles.sourceListItem}>
+            {isPlayable ? (
+              <button
+                type="button"
+                className={styles.sourceListLink}
+                onClick={() => playSource(src)}
+                aria-pressed={active}
+                aria-label={
+                  active
+                    ? `Pause ${titleText} radio clip`
+                    : `Play ${titleText} radio clip`
+                }
+              >
+                <SourceKindBadge kind={src.kind} />
+                <span className={styles.sourceListLabel}>{titleText}</span>
+                {host ? (
+                  <span className={styles.sourceListHost}>{host}</span>
+                ) : null}
+                <span className={styles.sourceListPlay} aria-hidden="true">
+                  {active ? (
+                    <svg viewBox="0 0 12 12" width="10" height="10">
+                      <rect x="3" y="2" width="2" height="8" fill="currentColor" />
+                      <rect x="7" y="2" width="2" height="8" fill="currentColor" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 12 12" width="10" height="10">
+                      <polygon points="3,2 10,6 3,10" fill="currentColor" />
+                    </svg>
+                  )}
+                </span>
+                <audio
+                  ref={(el) => {
+                    audiosRef.current.set(key, el);
+                  }}
+                  src={src.embed || ""}
+                  preload="none"
+                  onPause={() => {
+                    if (activeKey === key) setActiveKey(null);
+                  }}
+                />
+              </button>
+            ) : (
+              <a
+                className={styles.sourceListLink}
+                href={src.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <SourceKindBadge kind={src.kind} />
+                <span className={styles.sourceListLabel}>{titleText}</span>
+                {host ? (
+                  <span className={styles.sourceListHost}>{host}</span>
+                ) : null}
+              </a>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SourceKindBadge({ kind }: { kind: SourceKind }) {
+  const palette: Record<string, { label: string; bg: string; fg: string }> = {
+    radio: { label: "Radio", bg: "#F1F5F9", fg: "#0F172A" },
+    tiktok: { label: "TikTok", bg: "#F1F5F9", fg: "#0F172A" },
+    instagram: { label: "Instagram", bg: "#F1F5F9", fg: "#0F172A" },
+    youtube: { label: "YouTube", bg: "#F1F5F9", fg: "#0F172A" },
+    link: { label: "Web", bg: "#F1F5F9", fg: "#0F172A" },
+    internal: { label: "Pulse", bg: "#F1F5F9", fg: "#0F172A" },
+  };
+  const entry = palette[kind] ?? palette.link;
+  return (
+    <span
+      className={styles.sourceKindBadge}
+      style={{ background: entry.bg, color: entry.fg }}
+    >
+      {entry.label}
+    </span>
+  );
 }
 
 export function RecommendationCard({ option }: RecommendationCardProps) {
@@ -218,7 +344,7 @@ export function RecommendationCard({ option }: RecommendationCardProps) {
         </ul>
       ) : null}
       {prioritisedSourceRefs.length > 0 ? (
-        <SourceList sources={prioritisedSourceRefs} />
+        <CompactSourceRow sources={prioritisedSourceRefs} />
       ) : null}
     </div>
   );

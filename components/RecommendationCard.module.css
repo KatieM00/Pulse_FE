@@ -219,6 +219,86 @@
   color: #374151;
 }
 
+.sourceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sourceListItem {
+  margin: 0;
+  padding: 0;
+}
+
+.sourceListLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.04);
+  color: #1F2937;
+  text-decoration: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  min-height: 22px;
+}
+
+.sourceListLink:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: #0F172A;
+}
+
+.sourceKindBadge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+.sourceListLabel {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sourceListHost {
+  font-size: 11px;
+  color: #6B7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.sourceListPlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: #0F172A;
+  flex-shrink: 0;
+}
+
 .refinementTitle {
   font-weight: 700;
   font-size: 11px;
