@@ -87,6 +87,17 @@ export function sourceCardFromFeed(item: FeedItem): SourceCardData {
   };
 }
 
+function _barbadosDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BARBADOS_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return `${lookup.year}-${lookup.month}-${lookup.day}`;
+}
+
 function formatDate(capturedAt: string | null | undefined): string {
   if (!capturedAt) return "";
   // Date-only API values describe a Barbados calendar date, not midnight UTC.
@@ -95,6 +106,15 @@ function formatDate(capturedAt: string | null | undefined): string {
     : capturedAt;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+
+  const capturedKey = _barbadosDateKey(date);
+  const now = new Date();
+  const todayKey = _barbadosDateKey(now);
+  if (capturedKey === todayKey) return "Today";
+
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  if (capturedKey === _barbadosDateKey(yesterday)) return "Yesterday";
+
   return new Intl.DateTimeFormat("en-BB", {
     timeZone: BARBADOS_TZ,
     day: "numeric",
