@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   RecommendationEvidence,
   RecommendationOption,
+  SourceKind,
+  SourceRef,
 } from "@/lib/types";
 import styles from "./RecommendationCard.module.css";
+import SourceList from "./SourceList";
 
 const BARBADOS_TZ = "America/Barbados";
 
@@ -40,25 +43,6 @@ function humaniseFacet(facet: string): string {
   return facet.replace(/_/g, " ");
 }
 
-function EvidenceDot({ src }: { src: RecommendationEvidence }) {
-  const palette: Record<string, string> = {
-    radio: "#EF4444",
-    newspaper: "#3B82F6",
-    gis: "#10B981",
-    tiktok: "#1A1A1A",
-    instagram: "#EC4899",
-    youtube_video: "#DC2626",
-    events_calendar: "#8B5CF6",
-  };
-  return (
-    <span
-      aria-hidden="true"
-      className={styles.evidenceDot}
-      style={{ background: palette[src.source_type] ?? "#9CA3AF" }}
-    />
-  );
-}
-
 function hostFromUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   try {
@@ -70,58 +54,56 @@ function hostFromUrl(url: string | null | undefined): string | null {
   }
 }
 
-function formatSourceLabel(
-  ev: RecommendationEvidence,
-): { label: string; host: string | null } {
-  const candidate =
-    ev.title && ev.title.trim().length > 0
-      ? ev.title.trim()
-      : ev.publisher && ev.publisher.trim().length > 0
-      ? ev.publisher.trim()
-      : null;
-  const base =
-    candidate ?? ev.source_type.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
-  const host = hostFromUrl(ev.url);
-  return { label: base, host };
+const KNOWN_SOURCE_KINDS: ReadonlyArray<SourceKind> = [
+  "radio",
+  "tiktok",
+  "instagram",
+  "youtube",
+  "link",
+  "internal",
+];
+
+function normaliseKind(sourceType: string | null | undefined): SourceKind {
+  const value = (sourceType ?? "").toLowerCase();
+  if ((KNOWN_SOURCE_KINDS as ReadonlyArray<string>).includes(value)) {
+    return value as SourceKind;
+  }
+  if (value === "youtube_video") return "youtube";
+  return "link";
 }
 
-function renderSourceList(option: RecommendationOption) {
+function sourceLabel(ev: RecommendationEvidence): string {
+  if (ev.title && ev.title.trim().length > 0) return ev.title.trim();
+  if (ev.publisher && ev.publisher.trim().length > 0) return ev.publisher.trim();
+  return ev.source_type.replace(/_/g, " ");
+}
+
+function recommendationEvidenceToSourceRefs(
+  option: RecommendationOption,
+): SourceRef[] {
   const evidence = option.evidence ?? [];
-  if (evidence.length === 0) return null;
-  const featured = new Set(option.featured_evidence_ids ?? []);
-  const filtered = evidence.filter(
-    (ev) =>
-      ev.url &&
-      ev.url.length > 0 &&
-      (featured.size === 0 || featured.has(ev.evidence_span_id ?? -1)),
-  );
-  const list = filtered.length > 0 ? filtered : evidence.filter((ev) => !!ev.url);
-  if (list.length === 0) return null;
-  return (
-    <div className={styles.sourceList}>
-      <span className={styles.sourceListLabel}>Sources</span>
-      <ul className={styles.sourceListItems}>
-        {list.slice(0, 4).map((ev) => {
-          const { label, host } = formatSourceLabel(ev);
-          return (
-            <li key={`${ev.source_item_id}-${ev.evidence_span_id ?? 0}`}>
-              <a
-                className={styles.sourceLink}
-                href={ev.url ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span className={styles.sourceLinkLabel}>{label}</span>
-                {host ? (
-                  <span className={styles.sourceLinkHost}>{host}</span>
-                ) : null}
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
+  const refs: SourceRef[] = [];
+  for (let idx = 0; idx < evidence.length; idx += 1) {
+    const ev = evidence[idx];
+    if (!ev.url || ev.url.length === 0) continue;
+    const label = sourceLabel(ev);
+    refs.push({
+      n: idx + 1,
+      kind: normaliseKind(ev.source_type),
+      url: ev.url,
+      title: ev.title ?? null,
+      publisher: ev.publisher ?? null,
+      label,
+      captured_at: ev.captured_at ?? null,
+      segment_at: undefined,
+      thumbnail_url: null,
+      embed: "",
+      reason: ev.quote ?? null,
+      station_frequency_mhz: null,
+      uncited: false,
+    });
+  }
+  return refs;
 }
 
 function DistinctSourceTypes(
@@ -141,6 +123,21 @@ export function RecommendationCard({ option }: RecommendationCardProps) {
   const windowStart = option.event_window?.start ?? option.availability;
   const windowEnd = option.event_window?.end;
   const status = option.verification === "verified" ? "verified" : "unverified";
+  const sourceRefs = useMemo(
+    () => recommendationEvidenceToSourceRefs(option),
+    [option],
+  );
+  const featuredIds = option.featured_evidence_ids ?? [];
+  const prioritisedSourceRefs = useMemo(() => {
+    if (featuredIds.length === 0 || sourceRefs.length === 0) return sourceRefs;
+    const order = new Map<number, number>();
+    featuredIds.forEach((id, idx) => order.set(id, idx));
+    return [...sourceRefs].sort((a, b) => {
+      const aRank = order.has(a.n) ? order.get(a.n)! : Number.MAX_SAFE_INTEGER;
+      const bRank = order.has(b.n) ? order.get(b.n)! : Number.MAX_SAFE_INTEGER;
+      return aRank - bRank;
+    });
+  }, [featuredIds, sourceRefs]);
   return (
     <div className={styles.card} data-id={option.id}>
       <div className={styles.cardTitleRow}>
@@ -246,7 +243,9 @@ export function RecommendationCard({ option }: RecommendationCardProps) {
           ))}
         </ul>
       ) : null}
-      {renderSourceList(option)}
+      {prioritisedSourceRefs.length > 0 ? (
+        <SourceList sources={prioritisedSourceRefs} />
+      ) : null}
     </div>
   );
 }
