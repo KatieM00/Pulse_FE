@@ -39,10 +39,28 @@ export async function askPulse(question: string): Promise<AskResponse> {
     if (!resp.ok) {
       throw new Error(body.error ?? `ask failed (${resp.status})`);
     }
-    return body;
+    return stripUnopenable(body);
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Drop any source whose URL isn't http(s) or whose kind is "internal".
+ * The backend's V2 path may still surface travel_corpus entries with
+ * ``file:///...`` URLs from a local dev environment; those are not
+ * openable in production.
+ */
+function stripUnopenable(body: AskResponse): AskResponse {
+  if (Array.isArray(body?.sources)) {
+    body.sources = body.sources.filter((src) => {
+      if (!src) return false;
+      if (src.kind === "internal") return false;
+      if (!src.url || !/^https?:\/\//i.test(src.url)) return false;
+      return true;
+    });
+  }
+  return body;
 }
 
 export async function fetchFeed(limit = 8): Promise<FeedResponse> {

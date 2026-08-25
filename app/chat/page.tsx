@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChatMessage } from "@/lib/types";
+import { ChatMessage, SourceRef } from "@/lib/types";
 import { askPulse } from "@/lib/api";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
@@ -14,6 +14,21 @@ const SUGGESTIONS = [
   "Where and when is the circus?",
   "What's happening at the beach?",
 ];
+
+/**
+ * Defence-in-depth gate for legacy V2 source cards.
+ *
+ * The V2 path can still surface "internal" sources whose URL is an
+ * absolute filesystem path (``file:///Users/matt/...``) left over from
+ * the local travel corpus. Those URLs cannot be opened in production
+ * and the cards used to render as broken links. Hide any non-http
+ * source and any source whose kind is ``internal``.
+ */
+function _isOpenableSource(src: SourceRef): boolean {
+  if (src.kind === "internal") return false;
+  if (!src.url || !src.url.startsWith("http")) return false;
+  return true;
+}
 
 // Shown in the assistant bubble while the pipeline runs — one per source
 // it searches, in a fixed order so the cycle reads as a little tour.
@@ -379,9 +394,12 @@ function ChatContent() {
             )}
 
             {/* V3 (issue #31): ranked shortlist of recommendation options.
-               Shown above the flat source list so the user sees the
-               server-selected result set independent of any final-model
-               citations. */}
+               Each card carries its own nested evidence underneath, so
+               we deliberately skip the legacy flat sources list when
+               options are present. The legacy list still includes
+               internal `travel_site` entries with `file:///` URLs that
+               cannot be opened in production, which the FE used to
+               render as broken cards. */}
             {msg.role === "assistant" &&
               msg.options &&
               msg.options.length > 0 && (
@@ -391,10 +409,18 @@ function ChatContent() {
                 />
               )}
 
-            {/* Numbered sources with embeds below assistant reply */}
-            {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
-              <SourceList sources={msg.sources} />
-            )}
+            {/* Legacy V2 flat source list. Only shown when V3 returned no
+               options (e.g. when the operator explicitly overrides to
+               the V2 path with ``pipeline=v2``). Defence in depth also
+               drops any source whose URL is an internal ``file:///`` or
+               whose kind is ``internal`` so the consumer never sees a
+               broken link. */}
+            {msg.role === "assistant" &&
+              msg.sources &&
+              msg.sources.length > 0 &&
+              (!msg.options || msg.options.length === 0) && (
+                <SourceList sources={(msg.sources || []).filter(_isOpenableSource)} />
+              )}
           </div>
         ))}
 
