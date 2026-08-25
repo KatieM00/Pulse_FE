@@ -44,6 +44,7 @@ export interface ChatMessage {
   refinement_prompt?: string | null;
   /** V3: assumptions the brief made because details were absent */
   assumptions?: string[];
+  warnings?: string[];
 }
 
 /** A numbered, cited source returned by the Pulse ask API. */
@@ -152,6 +153,8 @@ export interface RecommendationOption {
   verification: "verified" | "unverified";
   caveats: string[];
   evidence: RecommendationEvidence[];
+  /** Span IDs the composer explicitly chose to feature as sources. */
+  featured_evidence_ids?: number[];
   facets: string[];
   indoor_outdoor: string | null;
   family_friendly: boolean | null;
@@ -176,4 +179,6 @@ export interface AskResponse {
   pipeline_version?: string;
   /** V3: "recommendation" / "factual" / "lookup" */
   mode?: string;
+  /** V3: warnings collected from the pipeline (e.g. composer unavailable). */
+  warnings?: string[];
 }

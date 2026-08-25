@@ -59,6 +59,71 @@ function EvidenceDot({ src }: { src: RecommendationEvidence }) {
   );
 }
 
+function hostFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname || "";
+    return host.replace(/^www\./, "");
+  } catch (error) {
+    return null;
+  }
+}
+
+function formatSourceLabel(
+  ev: RecommendationEvidence,
+): { label: string; host: string | null } {
+  const candidate =
+    ev.title && ev.title.trim().length > 0
+      ? ev.title.trim()
+      : ev.publisher && ev.publisher.trim().length > 0
+      ? ev.publisher.trim()
+      : null;
+  const base =
+    candidate ?? ev.source_type.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+  const host = hostFromUrl(ev.url);
+  return { label: base, host };
+}
+
+function renderSourceList(option: RecommendationOption) {
+  const evidence = option.evidence ?? [];
+  if (evidence.length === 0) return null;
+  const featured = new Set(option.featured_evidence_ids ?? []);
+  const filtered = evidence.filter(
+    (ev) =>
+      ev.url &&
+      ev.url.length > 0 &&
+      (featured.size === 0 || featured.has(ev.evidence_span_id ?? -1)),
+  );
+  const list = filtered.length > 0 ? filtered : evidence.filter((ev) => !!ev.url);
+  if (list.length === 0) return null;
+  return (
+    <div className={styles.sourceList}>
+      <span className={styles.sourceListLabel}>Sources</span>
+      <ul className={styles.sourceListItems}>
+        {list.slice(0, 4).map((ev) => {
+          const { label, host } = formatSourceLabel(ev);
+          return (
+            <li key={`${ev.source_item_id}-${ev.evidence_span_id ?? 0}`}>
+              <a
+                className={styles.sourceLink}
+                href={ev.url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span className={styles.sourceLinkLabel}>{label}</span>
+                {host ? (
+                  <span className={styles.sourceLinkHost}>{host}</span>
+                ) : null}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 function DistinctSourceTypes(
   evidence: RecommendationEvidence[],
 ): { count: number; types: string[] } {
@@ -181,13 +246,7 @@ export function RecommendationCard({ option }: RecommendationCardProps) {
           ))}
         </ul>
       ) : null}
-      {option.evidence && option.evidence.length > 0 ? (
-        <div className={styles.evidenceRow}>
-          {option.evidence.slice(0, 6).map((ev) => (
-            <EvidenceDot key={`${ev.source_item_id}-${ev.evidence_span_id ?? 0}`} src={ev} />
-          ))}
-        </div>
-      ) : null}
+      {renderSourceList(option)}
     </div>
   );
 }

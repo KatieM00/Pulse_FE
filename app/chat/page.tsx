@@ -139,6 +139,10 @@ function ChatContent() {
 
     try {
       const result = await askPulse(trimmed);
+      const composerDown =
+        (result.warnings ?? []).some((w) =>
+          (w ?? "").includes("composer"),
+        ) || (result.error ?? "").includes("composer");
       const answerText =
         result.answer ||
         "I don't have any source-backed evidence for that yet — signals are still coming in.";
@@ -148,11 +152,14 @@ function ChatContent() {
             ? {
                 ...m,
                 id: `msg-assistant-${Date.now()}`,
-                text: answerText,
+                text: composerDown
+                  ? "I couldn't reach the Ask composer right now. Try again in a moment."
+                  : answerText,
                 sources: result.sources,
                 options: result.options,
                 refinement_prompt: result.refinement_prompt,
                 assumptions: result.assumptions,
+                warnings: result.warnings ?? [],
               }
             : m,
         ),

@@ -204,6 +204,67 @@
   color: #1F2937;
 }
 
+.sourceList {
+  margin-top: 8px;
+  border-top: 0.5px solid rgba(15, 23, 42, 0.08);
+  padding-top: 8px;
+}
+
+.sourceListLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4B5563;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sourceListItems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+}
+
+.sourceLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.2;
+  background: rgba(15, 23, 42, 0.06);
+  color: #1F2937;
+  text-decoration: none;
+  border: 0.5px solid rgba(15, 23, 42, 0.12);
+  max-width: 100%;
+}
+
+.sourceLink:hover {
+  background: rgba(15, 23, 42, 0.1);
+  color: #0F172A;
+}
+
+.sourceLinkLabel {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sourceLinkHost {
+  color: #6B7280;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .refinementCard {
   margin: 8px 0 16px 0;
   border-radius: 14px;
