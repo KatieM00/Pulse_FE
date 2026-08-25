@@ -126,32 +126,31 @@
 
 .caveatList {
   list-style: none;
-  margin: 4px 0 0 0;
+  margin: 2px 0 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .caveatItem {
-  font-size: 11.5px;
-  line-height: 1.4;
-  color: #92400E;
-  background: rgba(254, 243, 199, 0.6);
-  border: 0.5px solid rgba(217, 119, 6, 0.25);
-  border-radius: 8px;
-  padding: 6px 10px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #6B7280;
+  font-style: italic;
+  padding: 0;
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 4px;
 }
 
 .caveatIcon {
   flex-shrink: 0;
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-top: 1px;
+  width: 10px;
+  height: 10px;
+  margin-top: 2px;
+  color: #9CA3AF;
 }
 
 .verifiedBadge {
