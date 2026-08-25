@@ -5,32 +5,24 @@ import { AskResponse, FeedResponse } from "./types";
 // point NEXT_PUBLIC_API_BASE at a locally running `python -m pulse.api`.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
-// Issue #31 typed-concierge discovery. The Pulse backend now returns a
-// ranked shortlist of ``options`` whenever the V3 pipeline is in use.
-// The frontend asks for V3 explicitly so legacy/V2 callers don't see a
-// behaviour change until the operator opts in.
-export const ASK_PIPELINE_VERSION =
-  process.env.NEXT_PUBLIC_ASK_PIPELINE ?? "v3";
-
 export async function askPulse(
   question: string,
   history: Array<{ role: "user" | "assistant"; text: string }> = [],
 ): Promise<AskResponse> {
   const controller = new AbortController();
-  // Specialist retrievers now run in parallel (issue #31). The worst-case
-  // p95 target is 15s; leave headroom for the composer call.
+  // The canonical Ask pipeline runs a planner LLM, a batched embedder
+  // call, the seven hybrid retrieval lanes, and a composer LLM. The
+  // worst-case p95 target is 25s; leave headroom for the composer call.
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
     // Anchor the retrieval to "now" with a 48-hour recency window so a
     // chat question asked at 23:00 still surfaces radio transcripts that
-    // arrived at 16:00 the same day. The V3 live_signal_retriever uses
-    // captured_window_hours to bound the chunk scan; the structured
-    // event and activity retrievers ignore it so evergreen attractions
-    // are not dropped.
+    // arrived at 16:00 the same day.
     //
     // ``conversation_history`` carries the last user/assistant turns in
-    // this chat so the composer can do follow-up reasoning against the
-    // graph. We cap at 8 entries on the server.
+    // this chat so the planner and composer can interpret follow-up
+    // questions against the prior context. We cap at 8 entries on the
+    // server.
     const resp = await fetch(`${API_BASE}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,15 +30,23 @@ export async function askPulse(
         question,
         captured_at: new Date().toISOString(),
         captured_window_hours: 48,
-        pipeline: ASK_PIPELINE_VERSION,
         conversation_history: history.slice(-8),
       }),
       signal: controller.signal,
     });
-    const body = (await resp.json()) as AskResponse;
     if (!resp.ok) {
-      throw new Error(body.error ?? `ask failed (${resp.status})`);
+      const body = (await resp.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+      };
+      const detail = body.detail ? `: ${body.detail}` : "";
+      throw new Error(
+        body.error
+          ? `${body.error}${detail}`
+          : `ask failed (${resp.status})`,
+      );
     }
+    const body = (await resp.json()) as AskResponse;
     return stripUnopenable(body);
   } finally {
     clearTimeout(timeout);
@@ -55,7 +55,7 @@ export async function askPulse(
 
 /**
  * Drop any source whose URL isn't http(s) or whose kind is "internal".
- * The backend's V2 path may still surface travel_corpus entries with
+ * The retrieval pack may still surface travel_corpus entries with
  * ``file:///...`` URLs from a local dev environment; those are not
  * openable in production.
  */

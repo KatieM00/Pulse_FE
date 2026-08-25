@@ -6,7 +6,6 @@ import { ChatMessage, SourceRef } from "@/lib/types";
 import { askPulse } from "@/lib/api";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
-import RecommendationList from "@/components/RecommendationCard";
 
 const SUGGESTIONS = [
   "What's on today?",
@@ -165,9 +164,6 @@ function ChatContent() {
                   ? "I couldn't reach the Ask composer right now. Try again in a moment."
                   : answerText,
                 sources: result.sources,
-                options: result.options,
-                refinement_prompt: result.refinement_prompt,
-                assumptions: result.assumptions,
                 warnings: result.warnings ?? [],
               }
             : m,
@@ -179,6 +175,10 @@ function ChatContent() {
         ? "That question is a bit long — try trimming it to a couple of sentences."
         : detail.includes("missing question")
           ? "Please ask a question."
+        : detail.startsWith("planner_unavailable")
+          ? "I couldn't reach the Ask planner right now. Try again in a moment."
+        : detail.startsWith("composer_unavailable")
+          ? "I couldn't reach the Ask composer right now. Try again in a moment."
         : "Sorry — I couldn't reach the Pulse service just now. Try again in a moment.";
       setMessages((prev) =>
         prev.map((m) =>
@@ -409,32 +409,13 @@ function ChatContent() {
               </div>
             )}
 
-            {/* V3 (issue #31): ranked shortlist of recommendation options.
-               Each card carries its own nested evidence underneath, so
-               we deliberately skip the legacy flat sources list when
-               options are present. The legacy list still includes
-               internal `travel_site` entries with `file:///` URLs that
-               cannot be opened in production, which the FE used to
-               render as broken cards. */}
-            {msg.role === "assistant" &&
-              msg.options &&
-              msg.options.length > 0 && (
-                <RecommendationList
-                  options={msg.options}
-                  refinementPrompt={msg.refinement_prompt}
-                />
-              )}
-
-            {/* Legacy V2 flat source list. Only shown when V3 returned no
-               options (e.g. when the operator explicitly overrides to
-               the V2 path with ``pipeline=v2``). Defence in depth also
-               drops any source whose URL is an internal ``file:///`` or
-               whose kind is ``internal`` so the consumer never sees a
-               broken link. */}
+            {/* Source cards the composer selected. Defence in depth drops
+               any source whose URL is an internal ``file:///`` or whose
+               kind is ``internal`` so the consumer never sees a broken
+               link. */}
             {msg.role === "assistant" &&
               msg.sources &&
-              msg.sources.length > 0 &&
-              (!msg.options || msg.options.length === 0) && (
+              msg.sources.length > 0 && (
                 <SourceList sources={(msg.sources || []).filter(_isOpenableSource)} />
               )}
           </div>
