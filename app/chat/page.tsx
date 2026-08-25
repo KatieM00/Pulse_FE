@@ -6,6 +6,7 @@ import { ChatMessage } from "@/lib/types";
 import { askPulse } from "@/lib/api";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
+import RecommendationList from "@/components/RecommendationCard";
 
 const SUGGESTIONS = [
   "What's on today?",
@@ -129,7 +130,15 @@ function ChatContent() {
       setMessages((prev) =>
         prev.map((m) =>
           m.id === pendingId
-            ? { ...m, id: `msg-assistant-${Date.now()}`, text: answerText, sources: result.sources }
+            ? {
+                ...m,
+                id: `msg-assistant-${Date.now()}`,
+                text: answerText,
+                sources: result.sources,
+                options: result.options,
+                refinement_prompt: result.refinement_prompt,
+                assumptions: result.assumptions,
+              }
             : m,
         ),
       );
@@ -368,6 +377,19 @@ function ChatContent() {
                 ))}
               </div>
             )}
+
+            {/* V3 (issue #31): ranked shortlist of recommendation options.
+               Shown above the flat source list so the user sees the
+               server-selected result set independent of any final-model
+               citations. */}
+            {msg.role === "assistant" &&
+              msg.options &&
+              msg.options.length > 0 && (
+                <RecommendationList
+                  options={msg.options}
+                  refinementPrompt={msg.refinement_prompt}
+                />
+              )}
 
             {/* Numbered sources with embeds below assistant reply */}
             {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (

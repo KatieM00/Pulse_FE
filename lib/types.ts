@@ -1,4 +1,9 @@
-export type Category = "soca" | "beach" | "music" | "culture" | "market";
+export type Category =
+  | "soca"
+  | "beach"
+  | "music"
+  | "culture"
+  | "market";
 export type ConfidenceLabel = "high" | "medium" | "low" | "needs_review";
 export type SourceType = "radio" | "newspaper" | "tiktok";
 
@@ -33,10 +38,22 @@ export interface ChatMessage {
   text: string;
   events?: Event[];
   sources?: SourceRef[];
+  /** V3 (issue #31): ranked shortlist returned by the backend */
+  options?: RecommendationOption[];
+  /** V3: explicit list of missing details the user can supply to refine */
+  refinement_prompt?: string | null;
+  /** V3: assumptions the brief made because details were absent */
+  assumptions?: string[];
 }
 
 /** A numbered, cited source returned by the Pulse ask API. */
-export type SourceKind = "radio" | "tiktok" | "instagram" | "youtube" | "link" | "internal";
+export type SourceKind =
+  | "radio"
+  | "tiktok"
+  | "instagram"
+  | "youtube"
+  | "link"
+  | "internal";
 
 /**
  * Base card geometry shared by Ask citations and the Home feed.
@@ -90,8 +107,73 @@ export interface FeedResponse {
   items: FeedItem[];
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+/**
+ * One supporting source attached to an Ask V3 recommendation (issue #31).
+ *
+ * ``source_type`` is intentionally free-form: V3 mixes newspaper, radio,
+ * Instagram, TikTok, GIS, events-calendar and corpus chunks under a single
+ * canonical recommendation so the consumer renders them through the same
+ * shared ``SourceCard`` component used by the Home feed and Chat citations.
+ */
+export interface RecommendationEvidence {
+  source_item_id: number;
+  source_chunk_id: number;
+  evidence_span_id: number | null;
+  claim_id: number | null;
+  source_type: string;
+  captured_at: string | null;
+  quote: string;
+  url: string | null;
+  title: string | null;
+  publisher: string | null;
+  confidence: number | null;
+}
+
+/**
+ * The V3 (issue #31) typed-concierge API returns a ranked shortlist of
+ * ``RecommendationOption`` rows. The backend owns the selection; the
+ * composer can explain but must not invent IDs.
+ */
+export interface RecommendationOption {
+  /** Stable canonical id (kind + title + event-time + locations). */
+  id: string;
+  kind: string;
+  title: string;
+  category: string | null;
+  /** Composer-generated explanation of why it fits the user's question. */
+  why_it_fits: string;
+  /** ISO timestamp / range string for availability when supported. */
+  availability: string | null;
+  location: string | null;
+  price: string | null;
+  /** Whether the recommendation is fully verified by source evidence. */
+  verification: "verified" | "unverified";
+  caveats: string[];
+  evidence: RecommendationEvidence[];
+  facets: string[];
+  indoor_outdoor: string | null;
+  family_friendly: boolean | null;
+  event_window: { start: string; end?: string } | null;
+}
+
 export interface AskResponse {
   answer: string;
   sources: SourceRef[];
   error?: string;
+  /** V3 (issue #31): ranked shortlist when the backend is V3. */
+  options?: RecommendationOption[];
+  /** V3: refine prompt (e.g. "tell me your starting location") */
+  refinement_prompt?: string | null;
+  /** V3: list of assumptions the brief made from the question. */
+  assumptions?: string[];
+  /** V3: per-stage timings recorded by the orchestrator. */
+  timings_ms?: Record<string, number>;
+  /** V3: structured pipeline trace for debugging. */
+  trace?: Record<string, unknown>;
+  /** V3: "v2" / "v3" / "legacy" — surfaces which pipeline produced the response. */
+  pipeline_version?: string;
+  /** V3: "recommendation" / "factual" / "lookup" */
+  mode?: string;
 }

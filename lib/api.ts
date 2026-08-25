@@ -5,16 +5,25 @@ import { AskResponse, FeedResponse } from "./types";
 // point NEXT_PUBLIC_API_BASE at a locally running `python -m pulse.api`.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
+// Issue #31 typed-concierge discovery. The Pulse backend now returns a
+// ranked shortlist of ``options`` whenever the V3 pipeline is in use.
+// The frontend asks for V3 explicitly so legacy/V2 callers don't see a
+// behaviour change until the operator opts in.
+export const ASK_PIPELINE_VERSION =
+  process.env.NEXT_PUBLIC_ASK_PIPELINE ?? "v3";
+
 export async function askPulse(question: string): Promise<AskResponse> {
   const controller = new AbortController();
-  // KG expansion + answer model can take tens of seconds.
+  // Specialist retrievers now run in parallel (issue #31). The worst-case
+  // p95 target is 15s; leave headroom for the composer call.
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
     // Anchor the retrieval to "now" with a 48-hour recency window so a
     // chat question asked at 23:00 still surfaces radio transcripts that
-    // arrived at 16:00 the same day. The v2 pipeline's default 365-day
-    // fallback otherwise lets older events-calendar cards outrank fresh
-    // radio coverage for broad "what's happening" prompts.
+    // arrived at 16:00 the same day. The V3 live_signal_retriever uses
+    // captured_window_hours to bound the chunk scan; the structured
+    // event and activity retrievers ignore it so evergreen attractions
+    // are not dropped.
     const resp = await fetch(`${API_BASE}/api/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -22,6 +31,7 @@ export async function askPulse(question: string): Promise<AskResponse> {
         question,
         captured_at: new Date().toISOString(),
         captured_window_hours: 48,
+        pipeline: ASK_PIPELINE_VERSION,
       }),
       signal: controller.signal,
     });
