@@ -42,6 +42,30 @@ const SCREEN_READER_ONLY: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+type AnswerSegment =
+  | { kind: "text"; value: string }
+  | { kind: "bold"; value: string };
+
+function parseAnswerSegments(text: string): AnswerSegment[] {
+  const segments: AnswerSegment[] = [];
+  const pattern = /\*\*([^*\n][^*\n]*?)\*\*|\*([^*\n]+)\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ kind: "text", value: text.slice(lastIndex, match.index) });
+    }
+    const value = (match[1] ?? match[2] ?? "").trim();
+    if (value) segments.push({ kind: "bold", value });
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    segments.push({ kind: "text", value: text.slice(lastIndex) });
+  }
+  if (segments.length === 0) segments.push({ kind: "text", value: text });
+  return segments;
+}
+
 function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -51,6 +75,7 @@ function ChatContent() {
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const seededRef = useRef(false);
   const sendingRef = useRef(false);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -138,9 +163,17 @@ function ChatContent() {
     }
   }, [initialQ, sendMessage]);
 
-  // Scroll to bottom on new messages
+  // Keep the conversation pinned to the user's question + the assistant
+  // bubble they just sent. Don't auto-scroll when results land: the user
+  // already saw the question and should stay oriented to the chat input.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "user") return;
+    const node = nodeRefs.current[last.id];
+    node?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // messages is intentionally read via length + last index to avoid
+    // re-scrolling on every state mutation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length, sending]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -275,7 +308,12 @@ function ChatContent() {
 
         {/* Messages */}
         {messages.map((msg) => (
-          <div key={msg.id}>
+          <div
+            key={msg.id}
+            ref={(el) => {
+              nodeRefs.current[msg.id] = el;
+            }}
+          >
             {/* Chat bubble */}
             <div
               style={{
@@ -305,7 +343,13 @@ function ChatContent() {
                     <span style={SCREEN_READER_ONLY}>Searching Pulse sources</span>
                   </>
                 ) : (
-                  msg.text
+                  parseAnswerSegments(msg.text).map((segment, idx) =>
+                    segment.kind === "bold" ? (
+                      <strong key={idx}>{segment.value}</strong>
+                    ) : (
+                      <span key={idx}>{segment.value}</span>
+                    ),
+                  )
                 )}
               </div>
             </div>
