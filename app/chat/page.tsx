@@ -133,14 +133,20 @@ function ChatContent() {
             : m,
         ),
       );
-    } catch {
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "";
+      const friendly = detail.includes("too long")
+        ? "That question is a bit long — try trimming it to a couple of sentences."
+        : detail.includes("missing question")
+          ? "Please ask a question."
+        : "Sorry — I couldn't reach the Pulse service just now. Try again in a moment.";
       setMessages((prev) =>
         prev.map((m) =>
           m.id === pendingId
             ? {
                 ...m,
                 id: `msg-assistant-${Date.now()}`,
-                text: "Sorry — I couldn't reach the Pulse service just now. Try again in a moment.",
+                text: friendly,
               }
             : m,
         ),
