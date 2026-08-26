@@ -17,6 +17,7 @@ export default function HomePage() {
     e.preventDefault();
     const trimmed = searchValue.trim();
     if (trimmed) {
+      setSearchValue("");
       router.push(`/chat?q=${encodeURIComponent(trimmed)}`);
     }
   }

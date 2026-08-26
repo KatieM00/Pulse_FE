@@ -91,7 +91,7 @@ function ChatContent() {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const seededRef = useRef(false);
+  const seededRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -201,12 +201,16 @@ function ChatContent() {
     }
   }, []);
 
-  // Seed conversation from URL param on mount
+  // Seed conversation from URL param. Re-seed whenever ?q= changes
+  // (e.g. user goes back to the homepage, types a new question, and
+  // submits again — the chat page stays mounted under the App Router
+  // and would otherwise keep the previous conversation in state).
   useEffect(() => {
-    if (initialQ && !seededRef.current) {
-      seededRef.current = true;
-      void sendMessage(initialQ);
-    }
+    if (!initialQ) return;
+    if (seededRef.current === initialQ) return;
+    seededRef.current = initialQ;
+    setMessages([]);
+    void sendMessage(initialQ);
   }, [initialQ, sendMessage]);
 
   // Keep the conversation pinned to the user's question + the assistant
