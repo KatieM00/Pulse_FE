@@ -15,9 +15,11 @@ export async function askPulse(
   // worst-case p95 target is 25s; leave headroom for the composer call.
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
-    // Anchor the retrieval to "now" with a 48-hour recency window so a
-    // chat question asked at 23:00 still surfaces radio transcripts that
-    // arrived at 16:00 the same day.
+    // No recency window: the server treats captured_window_hours=0 as
+    // "no SQL cutoff", so the chat surfaces the full corpus (older radio
+    // broadcasts, weeks-old social posts) the operator can browse. The
+    // per-search freshness_days from the planner LLM still applies on
+    // top, so "what's happening now" questions still lean recent.
     //
     // ``conversation_history`` carries the last user/assistant turns in
     // this chat so the planner and composer can interpret follow-up
@@ -29,7 +31,7 @@ export async function askPulse(
       body: JSON.stringify({
         question,
         captured_at: new Date().toISOString(),
-        captured_window_hours: 48,
+        captured_window_hours: 0,
         conversation_history: history.slice(-8),
       }),
       signal: controller.signal,

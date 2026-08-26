@@ -94,6 +94,14 @@ function ChatContent() {
   const seededRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
   const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Mirror ``messages`` into a ref so ``sendMessage`` (built with an
+  // empty dep array, so its closure is captured at mount and never
+  // refreshed) can read the *current* conversation when building the
+  // follow-up history it sends with each Ask request.
+  const messagesRef = useRef<ChatMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Don't leak the status cycle if the page unmounts mid-ask.
   useEffect(
@@ -138,8 +146,10 @@ function ChatContent() {
 
     // Pull the previous user/assistant turns as conversation history so
     // a follow-up like "what about nearby" can re-query the graph with
-    // the prior context already loaded.
-    const history = messages
+    // the prior context already loaded. Read from the ref, not the
+    // captured ``messages`` closure — useCallback has [] deps so the
+    // closure is stuck at first-render value.
+    const history = messagesRef.current
       .filter((m) => m.role === "user" || m.role === "assistant")
       .filter((m) => m.text && !m.text.startsWith("Looking through"))
       .slice(-8)
@@ -205,10 +215,13 @@ function ChatContent() {
   // (e.g. user goes back to the homepage, types a new question, and
   // submits again — the chat page stays mounted under the App Router
   // and would otherwise keep the previous conversation in state).
+  // Reset the messages ref synchronously so the upcoming sendMessage
+  // call sees an empty history instead of the stale previous chat.
   useEffect(() => {
     if (!initialQ) return;
     if (seededRef.current === initialQ) return;
     seededRef.current = initialQ;
+    messagesRef.current = [];
     setMessages([]);
     void sendMessage(initialQ);
   }, [initialQ, sendMessage]);
