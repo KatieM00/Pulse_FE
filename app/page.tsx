@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { EVENTS } from "@/lib/data";
@@ -10,14 +10,22 @@ import HomeFeed from "@/components/HomeFeed";
 export default function HomePage() {
   const router = useRouter();
   const [eventsExpanded, setEventsExpanded] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = searchValue.trim();
+    const input = searchInputRef.current;
+    if (!input) return;
+    const trimmed = input.value.trim();
     if (trimmed) {
-      setSearchValue("");
+      // Clear the DOM value synchronously, before the App Router
+      // snapshots this page for its cache. The router-back flow
+      // restores the cached DOM, so any state-only reset would be
+      // overwritten on the next visit. Setting the input value
+      // here lands the cleared state into the cache snapshot.
+      input.value = "";
+      input.blur();
       router.push(`/chat?q=${encodeURIComponent(trimmed)}`);
     }
   }
@@ -233,9 +241,9 @@ export default function HomePage() {
           >
             <input
               id="pulse-search"
+              ref={searchInputRef}
               type="search"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              defaultValue=""
               placeholder="Ask Pulse anything"
               style={{
                 flex: 1,
