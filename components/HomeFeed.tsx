@@ -35,7 +35,6 @@ export default function HomeFeed({
 }: HomeFeedProps) {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [activeClipKey, setActiveClipKey] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -63,12 +62,7 @@ export default function HomeFeed({
     setActiveClipKey(key);
   }, []);
 
-  const visible = items
-    ? expanded
-      ? items
-      : items.slice(0, VISIBLE_COUNT)
-    : [];
-  const remaining = items ? Math.max(0, items.length - VISIBLE_COUNT) : 0;
+  const visible = items ? items.slice(0, VISIBLE_COUNT) : [];
 
   if (items === null) {
     if (error) {
@@ -142,20 +136,6 @@ export default function HomeFeed({
             onPlayClip={handlePlayClip}
           />
         ))}
-        {remaining > 0 && (
-          <button
-            type="button"
-            className={styles.moreButton}
-            onClick={() => setExpanded(true)}
-            aria-expanded={expanded}
-          >
-            Show {remaining} more {remaining === 1 ? "source" : "sources"}
-            <span style={SCREEN_READER_ONLY}>
-              {" "}
-              (expands the list of live sources below)
-            </span>
-          </button>
-        )}
       </div>
     </section>
   );

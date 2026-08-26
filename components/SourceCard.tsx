@@ -8,15 +8,6 @@ import {
 } from "@/lib/types";
 import styles from "./SourceList.module.css";
 
-const SCREEN_READER_ONLY: React.CSSProperties = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  overflow: "hidden",
-  clip: "rect(0,0,0,0)",
-  whiteSpace: "nowrap",
-};
-
 const BARBADOS_TZ = "America/Barbados";
 
 /**
@@ -536,7 +527,7 @@ export function SourceCard({
   );
 }
 
-export const VISIBLE_COUNT = 4;
+export const VISIBLE_COUNT = 8;
 
 export interface SourceListProps {
   sources: SourceRef[];
@@ -544,7 +535,6 @@ export interface SourceListProps {
 
 export default function SourceList({ sources }: SourceListProps) {
   const [activeClipKey, setActiveClipKey] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
 
   // Stop any active radio clip when the list unmounts.
   useEffect(() => () => setActiveClipKey(null), []);
@@ -558,9 +548,6 @@ export default function SourceList({ sources }: SourceListProps) {
   const uncited = sources.filter((s) => s.uncited);
   const ordered = [...cited, ...uncited];
 
-  const visible = expanded ? ordered : ordered.slice(0, VISIBLE_COUNT);
-  const remaining = ordered.length - visible.length;
-
   return (
     <div className={styles.list} aria-label="Sources for this answer">
       <div className={styles.header}>
@@ -569,7 +556,7 @@ export default function SourceList({ sources }: SourceListProps) {
           {ordered.length} {ordered.length === 1 ? "result" : "results"}
         </span>
       </div>
-      {visible.map((src) => (
+      {ordered.map((src) => (
         <SourceCard
           key={`${src.kind}-${src.n}`}
           source={sourceCardFromChat(src)}
@@ -578,20 +565,6 @@ export default function SourceList({ sources }: SourceListProps) {
           onPlayClip={handlePlayClip}
         />
       ))}
-      {remaining > 0 && (
-        <button
-          type="button"
-          className={styles.moreButton}
-          onClick={() => setExpanded(true)}
-          aria-expanded={expanded}
-        >
-          Show {remaining} more {remaining === 1 ? "source" : "sources"}
-          <span style={SCREEN_READER_ONLY}>
-            {" "}
-            (expands the list of sources below)
-          </span>
-        </button>
-      )}
     </div>
   );
 }
