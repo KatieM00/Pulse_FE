@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { ChatMessage, SourceRef } from "@/lib/types";
-import { askPulse } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChatMessage, SourceRef, AskProgressEvent } from "@/lib/types";
+import { askPulseStream } from "@/lib/api";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
+import ToolProgress from "@/components/ToolProgress";
 
 const SUGGESTIONS = [
   "What's on today?",
@@ -28,34 +29,6 @@ function _isOpenableSource(src: SourceRef): boolean {
   if (!src.url || !src.url.startsWith("http")) return false;
   return true;
 }
-
-// Shown in the assistant bubble while the pipeline runs — one per source
-// it searches, in a fixed order so the cycle reads as a little tour.
-const STATUS_MESSAGES = [
-  "Listening to the airwaves…",
-  "Twiddling the radio dial…",
-  "Tiking the toks…",
-  "Checking the 'Gram…",
-  "Bingeing YouTube for clues…",
-  "Leafing through Ins & Outs…",
-  "Asking Visit Barbados…",
-  "Scanning the events calendar…",
-  "Checking where the lime is at…",
-  "Consulting the coconut wireless…",
-  "Asking around the rum shop…",
-  "Putting out feelers…",
-];
-
-const STATUS_INTERVAL_MS = 2200;
-
-const SCREEN_READER_ONLY: React.CSSProperties = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  overflow: "hidden",
-  clip: "rect(0,0,0,0)",
-  whiteSpace: "nowrap",
-};
 
 type AnswerSegment =
   | { kind: "text"; value: string }
@@ -93,20 +66,32 @@ function ChatContent() {
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const seededRef = useRef<string | null>(null);
   const sendingRef = useRef(false);
-  const statusTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Mirror ``messages`` into a ref so ``sendMessage`` (built with an
-  // empty dep array, so its closure is captured at mount and never
-  // refreshed) can read the *current* conversation when building the
-  // follow-up history it sends with each Ask request.
+  const abortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Don't leak the status cycle if the page unmounts mid-ask.
-  useEffect(
-    () => () => {
-      if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const appendEvent = useCallback(
+    (pendingId: string, event: AskProgressEvent) => {
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== pendingId) return m;
+          const progress = [...(m.progress ?? []), event];
+          const finalised = event.type === "done" || event.type === "error";
+          let text = m.text;
+          let sources = m.sources;
+          let warnings = m.warnings;
+          if (event.type === "done") {
+            sources = stripUnopenableSources(event.response.sources);
+            text = event.response.answer || text;
+            warnings = event.response.warnings ?? [];
+          }
+          return { ...m, progress, finalised, text, sources, warnings };
+        }),
+      );
     },
     [],
   );
@@ -125,56 +110,48 @@ function ChatContent() {
     const pendingMsg: ChatMessage = {
       id: pendingId,
       role: "assistant",
-      text: STATUS_MESSAGES[0],
+      text: "",
+      progress: [],
+      finalised: false,
     };
     setMessages((prev) => [...prev, userMsg, pendingMsg]);
     setInputValue("");
     setSending(true);
 
-    // Cycle the tour-of-sources status while the pipeline runs.
-    let statusIndex = 0;
-    statusTimerRef.current = setInterval(() => {
-      statusIndex = (statusIndex + 1) % STATUS_MESSAGES.length;
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === pendingId
-            ? { ...m, text: STATUS_MESSAGES[statusIndex] }
-            : m,
-        ),
-      );
-    }, STATUS_INTERVAL_MS);
-
-    // Pull the previous user/assistant turns as conversation history so
-    // a follow-up like "what about nearby" can re-query the graph with
-    // the prior context already loaded. Read from the ref, not the
-    // captured ``messages`` closure — useCallback has [] deps so the
-    // closure is stuck at first-render value.
     const history = messagesRef.current
       .filter((m) => m.role === "user" || m.role === "assistant")
       .filter((m) => m.text && !m.text.startsWith("Looking through"))
       .slice(-8)
       .map((m) => ({ role: m.role, text: m.text }));
 
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     try {
-      const result = await askPulse(trimmed, history);
+      const final = await askPulseStream(trimmed, history, {
+        signal: controller.signal,
+        onProgress: (event) => appendEvent(pendingId, event),
+      });
       const composerDown =
-        (result.warnings ?? []).some((w) =>
+        (final.warnings ?? []).some((w) =>
           (w ?? "").includes("composer"),
-        ) || (result.error ?? "").includes("composer");
+        ) || (final.error ?? "").includes("composer");
       const answerText =
-        result.answer ||
+        final.answer ||
         "I don't have any source-backed evidence for that yet — signals are still coming in.";
+      const finalText = composerDown
+        ? "I couldn't reach the Ask composer right now. Try again in a moment."
+        : answerText;
       setMessages((prev) =>
         prev.map((m) =>
           m.id === pendingId
             ? {
                 ...m,
                 id: `msg-assistant-${Date.now()}`,
-                text: composerDown
-                  ? "I couldn't reach the Ask composer right now. Try again in a moment."
-                  : answerText,
-                sources: result.sources,
-                warnings: result.warnings ?? [],
+                text: finalText,
+                sources: stripUnopenableSources(final.sources),
+                warnings: final.warnings ?? [],
+                finalised: true,
               }
             : m,
         ),
@@ -197,26 +174,18 @@ function ChatContent() {
                 ...m,
                 id: `msg-assistant-${Date.now()}`,
                 text: friendly,
+                finalised: true,
               }
             : m,
         ),
       );
     } finally {
-      if (statusTimerRef.current) {
-        clearInterval(statusTimerRef.current);
-        statusTimerRef.current = null;
-      }
+      abortRef.current = null;
       sendingRef.current = false;
       setSending(false);
     }
-  }, []);
+  }, [appendEvent]);
 
-  // Seed conversation from URL param. Re-seed whenever ?q= changes
-  // (e.g. user goes back to the homepage, types a new question, and
-  // submits again — the chat page stays mounted under the App Router
-  // and would otherwise keep the previous conversation in state).
-  // Reset the messages ref synchronously so the upcoming sendMessage
-  // call sees an empty history instead of the stale previous chat.
   useEffect(() => {
     if (!initialQ) return;
     if (seededRef.current === initialQ) return;
@@ -226,16 +195,11 @@ function ChatContent() {
     void sendMessage(initialQ);
   }, [initialQ, sendMessage]);
 
-  // Keep the conversation pinned to the user's question + the assistant
-  // bubble they just sent. Don't auto-scroll when results land: the user
-  // already saw the question and should stay oriented to the chat input.
   useEffect(() => {
     const last = messages[messages.length - 1];
     if (!last || last.role !== "user") return;
     const node = nodeRefs.current[last.id];
     node?.scrollIntoView({ behavior: "smooth", block: "start" });
-    // messages is intentionally read via length + last index to avoid
-    // re-scrolling on every state mutation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length, sending]);
 
@@ -245,7 +209,6 @@ function ChatContent() {
   }
 
   return (
-    /* Full-height flex column — fills the <main> exactly */
     <div
       style={{
         display: "flex",
@@ -254,7 +217,6 @@ function ChatContent() {
         background: "#ffffff",
       }}
     >
-      {/* ── Header ── */}
       <header
         style={{
           display: "flex",
@@ -313,7 +275,6 @@ function ChatContent() {
         </div>
       </header>
 
-      {/* ── Scrollable conversation ── */}
       <div
         style={{
           flex: 1,
@@ -323,7 +284,6 @@ function ChatContent() {
         aria-live="polite"
         aria-label="Conversation"
       >
-        {/* Empty state */}
         {messages.length === 0 && (
           <div style={{ textAlign: "center", padding: "32px 16px 0" }}>
             <div
@@ -342,7 +302,8 @@ function ChatContent() {
               }}
             >
               Ask me what&apos;s on, where something is, or what&apos;s being
-              talked about — answers come from live radio, news and social.
+              talked about — answers come from live radio, news and social,
+              and I&apos;ll show you what I&apos;m checking as I go.
             </p>
             <div
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
@@ -369,7 +330,6 @@ function ChatContent() {
           </div>
         )}
 
-        {/* Messages */}
         {messages.map((msg) => (
           <div
             key={msg.id}
@@ -377,12 +337,21 @@ function ChatContent() {
               nodeRefs.current[msg.id] = el;
             }}
           >
-            {/* Chat bubble */}
+            {msg.role === "assistant" && !msg.finalised ? (
+              <div style={{ marginBottom: 12 }}>
+                <ToolProgress message={msg} />
+              </div>
+            ) : null}
+
             <div
               style={{
                 display: "flex",
                 justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-                marginBottom: msg.role === "assistant" && (msg.events?.length || msg.sources?.length) ? 8 : 12,
+                marginBottom:
+                  msg.role === "assistant" &&
+                  (msg.events?.length || msg.sources?.length)
+                    ? 8
+                    : 12,
               }}
             >
               <div
@@ -400,12 +369,8 @@ function ChatContent() {
                   whiteSpace: "pre-wrap",
                 }}
               >
-                {msg.id.startsWith("msg-assistant-pending-") ? (
-                  <>
-                    <span aria-hidden="true">{msg.text}</span>
-                    <span style={SCREEN_READER_ONLY}>Searching Pulse sources</span>
-                  </>
-                ) : (
+                {msg.id.startsWith("msg-assistant-pending-") &&
+                !msg.finalised ? null : (
                   parseAnswerSegments(msg.text).map((segment, idx) =>
                     segment.kind === "bold" ? (
                       <strong key={idx}>{segment.value}</strong>
@@ -417,7 +382,6 @@ function ChatContent() {
               </div>
             </div>
 
-            {/* Event rows below assistant reply */}
             {msg.role === "assistant" && msg.events && msg.events.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 {msg.events.map((event) => (
@@ -426,10 +390,6 @@ function ChatContent() {
               </div>
             )}
 
-            {/* Source cards the composer selected. Defence in depth drops
-               any source whose URL is an internal ``file:///`` or whose
-               kind is ``internal`` so the consumer never sees a broken
-               link. */}
             {msg.role === "assistant" &&
               msg.sources &&
               msg.sources.length > 0 && (
@@ -441,7 +401,6 @@ function ChatContent() {
         <div ref={bottomRef} style={{ height: 4 }} />
       </div>
 
-      {/* ── Input bar ── */}
       <div
         style={{
           padding: "10px 12px 14px",
@@ -525,6 +484,15 @@ function ChatContent() {
       </div>
     </div>
   );
+}
+
+function stripUnopenableSources(sources: SourceRef[] | undefined): SourceRef[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.filter((src) => {
+    if (src.kind === "internal") return false;
+    if (!src.url || !/^https?:\/\//i.test(src.url)) return false;
+    return true;
+  });
 }
 
 export default function ChatPage() {

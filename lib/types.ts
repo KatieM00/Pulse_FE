@@ -39,6 +39,13 @@ export interface ChatMessage {
   events?: Event[];
   sources?: SourceRef[];
   warnings?: string[];
+  /** Streamed progress events for this assistant turn. Populated by
+   *  the SSE consumer; the final ``done`` event marks the assistant
+   *  message as finalised. */
+  progress?: AskProgressEvent[];
+  /** True after the ``done`` event has been seen — text / sources
+   *  / warnings are no longer placeholders. */
+  finalised?: boolean;
 }
 
 /** A numbered, cited source returned by the Pulse ask API. */
@@ -115,3 +122,62 @@ export interface AskResponse {
   /** Warnings collected from the pipeline (e.g. empty retrieval). */
   warnings?: string[];
 }
+
+/**
+ * Server-Sent Events stream consumed by the chat when the request
+ * opts in via ``Accept: text/event-stream``. The wire shape mirrors
+ * ``pulse.ask_progress.ProgressEvent`` on the backend.
+ */
+export type AskProgressEvent =
+  | {
+      type: "started";
+      version: string;
+      step: number;
+      elapsed_ms: number;
+    }
+  | {
+      type: "tool_started";
+      version: string;
+      phase: "agent";
+      status: "started";
+      step: number;
+      tool_name: string;
+      tool_label: string;
+      elapsed_ms: number;
+    }
+  | {
+      type: "tool_finished";
+      version: string;
+      phase: "agent";
+      status: "finished" | "failed";
+      step: number;
+      tool_name: string;
+      tool_label: string;
+      result_count?: number;
+      source_count?: number;
+      elapsed_ms: number;
+      error_message?: string;
+    }
+  | {
+      type: "composer";
+      version: string;
+      phase: "composer";
+      status: "started" | "finished" | "failed";
+      step: number;
+      result_count?: number;
+      elapsed_ms: number;
+      error_message?: string;
+    }
+  | {
+      type: "done";
+      response: AskResponse;
+    }
+  | {
+      type: "error";
+      version: string;
+      phase: "error";
+      status: "failed";
+      step: number;
+      error_message: string;
+      http_status?: number;
+    };
