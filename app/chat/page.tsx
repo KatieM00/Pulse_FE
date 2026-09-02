@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatMessage, SourceRef, AskProgressEvent } from "@/lib/types";
-import { askPulseStream } from "@/lib/api";
+import { askDemoStream, askPulseStream, getDemoScenario } from "@/lib/api";
+import { matchApprovedPrompt } from "@/lib/demoScenarios";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
 import ToolProgress from "@/components/ToolProgress";
@@ -14,6 +15,14 @@ const SUGGESTIONS = [
   "Where and when is the circus?",
   "What's happening at the beach?",
 ];
+
+function demoSuggestions(demoId: string): string[] {
+  const scenario = getDemoScenario(demoId);
+  if (!scenario) return SUGGESTIONS;
+  // First four approved variants give the concierge the same evidence
+  // through different framings.
+  return scenario.prompts.slice(0, 4);
+}
 
 /**
  * Defence-in-depth gate for legacy V2 source cards.
@@ -58,6 +67,18 @@ function ChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQ = searchParams.get("q") ?? "";
+  const demoParam = searchParams.get("demo");
+  const demoScenario = useMemo(() => getDemoScenario(demoParam), [demoParam]);
+  const demoLabel = demoScenario
+    ? `Verified demo snapshot · ${new Date(demoScenario.snapshot_at)
+        .toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          timeZone: "America/Barbados",
+        })}`
+    : null;
+  const chatSuggestions = demoScenario ? demoSuggestions(demoScenario.id) : SUGGESTIONS;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -128,6 +149,42 @@ function ChatContent() {
     abortRef.current = controller;
 
     try {
+      if (demoScenario) {
+        // Demo snapshot path. We still echo the user's typed prompt into
+        // the chat (it must look like a real conversation) but route to
+        // askDemoStream which assembles the deterministic answer and
+        // replays scripted progress events. Matching the typed text
+        // against the scenario's approved prompts keeps follow-ups
+        // frame-consistent.
+        const canonical = matchApprovedPrompt(demoScenario, trimmed);
+        const { response: final } = await askDemoStream(
+          demoScenario.id,
+          canonical ?? trimmed,
+          {
+            signal: controller.signal,
+            onProgress: (event) => appendEvent(pendingId, event),
+          },
+        );
+        const answerText =
+          final.answer ||
+          "I don't have any source-backed evidence for that yet — signals are still coming in.";
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === pendingId
+              ? {
+                  ...m,
+                  id: `msg-assistant-${Date.now()}`,
+                  text: answerText,
+                  sources: stripUnopenableSources(final.sources),
+                  warnings: final.warnings ?? [],
+                  finalised: true,
+                }
+              : m,
+          ),
+        );
+        return;
+      }
+
       const final = await askPulseStream(trimmed, history, {
         signal: controller.signal,
         onProgress: (event) => appendEvent(pendingId, event),
@@ -184,7 +241,7 @@ function ChatContent() {
       sendingRef.current = false;
       setSending(false);
     }
-  }, [appendEvent]);
+  }, [appendEvent, demoScenario, setInputValue]);
 
   useEffect(() => {
     if (!initialQ) return;
@@ -194,6 +251,20 @@ function ChatContent() {
     setMessages([]);
     void sendMessage(initialQ);
   }, [initialQ, sendMessage]);
+
+  // Demo scenarios auto-seed with their primary prompt when the user
+  // lands on /chat?demo=<id> without an explicit ?q= so the chat still
+  // looks like a normal concierge conversation.
+  useEffect(() => {
+    if (!demoScenario) return;
+    const seedKey = `demo:${demoScenario.id}`;
+    if (initialQ) return;
+    if (seededRef.current === seedKey) return;
+    seededRef.current = seedKey;
+    messagesRef.current = [];
+    setMessages([]);
+    void sendMessage(demoScenario.primary_prompt);
+  }, [demoScenario, initialQ, sendMessage]);
 
   useEffect(() => {
     const last = messages[messages.length - 1];
@@ -258,7 +329,7 @@ function ChatContent() {
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <div
             style={{
               fontSize: 16,
@@ -267,12 +338,35 @@ function ChatContent() {
               letterSpacing: -0.3,
             }}
           >
-            Pulse Concierge
+            {demoScenario ? demoScenario.title : "Pulse Concierge"}
           </div>
           <div style={{ fontSize: 11, color: "#9CA3AF" }}>
-            Live answers from radio, news and social
+            {demoScenario
+              ? demoScenario.subtitle
+              : "Live answers from radio, news and social"}
           </div>
         </div>
+        {demoLabel ? (
+          <span
+            role="note"
+            aria-label={demoLabel}
+            style={{
+              marginLeft: 12,
+              padding: "4px 10px",
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              textTransform: "uppercase",
+              color: "#92400E",
+              background: "rgba(239,159,39,0.12)",
+              border: "0.5px solid rgba(239,159,39,0.45)",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {demoLabel}
+          </span>
+        ) : null}
       </header>
 
       <div
@@ -301,14 +395,14 @@ function ChatContent() {
                 margin: "0 auto 24px",
               }}
             >
-              Ask me what&apos;s on, where something is, or what&apos;s being
-              talked about — answers come from live radio, news and social,
-              and I&apos;ll show you what I&apos;m checking as I go.
+              {demoScenario
+                ? `Ask me anything about the ${demoScenario.title.toLowerCase()} — I'll frame the answer against the same verified evidence, and you can tap any radio clip to play it.`
+                : "Ask me what\u2019s on, where something is, or what\u2019s being talked about \u2014 answers come from live radio, news and social, and I\u2019ll show you what I\u2019m checking as I go."}
             </p>
             <div
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
             >
-              {SUGGESTIONS.map((s) => (
+              {chatSuggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => void sendMessage(s)}

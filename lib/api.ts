@@ -1,11 +1,19 @@
 import { AskProgressEvent, AskResponse, FeedResponse } from "./types";
+import {
+  buildDemoResponse,
+  DemoId,
+  DemoResponse,
+  getDemoScenario,
+  listDemoIds,
+  renderProgressEvents,
+} from "./demoScenarios";
+
+export type { AskProgressEvent } from "./types";
 
 // In production the static export is served by Caddy, which proxies
 // same-origin /api/* to the Python API service on pulse-new. In dev,
 // point NEXT_PUBLIC_API_BASE at a locally running `python -m pulse.api`.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
-
-export type { AskProgressEvent } from "./types";
 
 export async function askPulse(
   question: string,
@@ -306,6 +314,88 @@ function stripUnopenable(body: AskResponse): AskResponse {
   }
   return body;
 }
+
+export interface DemoStreamHandlers {
+  /** Called once per scripted progress event while the demo "runs". */
+  onProgress: (event: AskProgressEvent) => void;
+  /** Abort the in-flight scripted stream. */
+  signal?: AbortSignal;
+  /** Override the simulated per-step delay (ms). Defaults to 280. */
+  stepDelayMs?: number;
+}
+
+/**
+ * Replay a curated demo scenario as a stream of the same Ask progress
+ * events the live pipeline emits, finishing with a `done` payload that
+ * carries the deterministic response. The user prompt can be any of
+ * the approved variants in the scenario (case- and whitespace-insensitive
+ * match) or any natural-language question the chat can still frame
+ * against the same scenario's evidence.
+ *
+ * Returns the canonical prompt that matched (or the scenario's primary
+ * prompt when nothing matches) so the caller can echo it back to the
+ * chat history as the user-facing question.
+ */
+export async function askDemoStream(
+  demoId: string | null | undefined,
+  userPrompt: string,
+  handlers: DemoStreamHandlers,
+): Promise<{ response: AskResponse; resolvedPrompt: string; demoId: DemoId | null }> {
+  const scenario = getDemoScenario(demoId);
+  if (!scenario) {
+    throw new Error(`unknown demo: ${demoId}`);
+  }
+
+  const resolvedPrompt = scenario.primary_prompt;
+  const response = buildDemoResponse(scenario, resolvedPrompt);
+  const events = renderProgressEvents(scenario, response.sources.length);
+
+  const controller = new AbortController();
+  if (handlers.signal) {
+    handlers.signal.addEventListener("abort", () => controller.abort());
+  }
+  const stepDelayMs = handlers.stepDelayMs ?? 280;
+
+  for (const event of events) {
+    if (controller.signal.aborted) break;
+    if (event.type === "done") {
+      // Replace the empty placeholder response with the real one.
+      handlers.onProgress({
+        type: "done",
+        response: {
+          answer: response.answer,
+          sources: response.sources,
+          pipeline_version: response.pipeline_version,
+          warnings: [],
+        },
+      });
+      const final: AskResponse = {
+        answer: response.answer,
+        sources: response.sources,
+        pipeline_version: response.pipeline_version,
+        warnings: [],
+      };
+      return { response: final, resolvedPrompt, demoId: scenario.id };
+    }
+    handlers.onProgress(event);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, stepDelayMs);
+      controller.signal.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(new Error("aborted"));
+      });
+    });
+  }
+  throw new Error("demo stream ended without done event");
+}
+
+export function listAvailableDemos(): DemoId[] {
+  return listDemoIds();
+}
+
+export { getDemoScenario };
+
+export type { DemoId, DemoResponse };
 
 export async function fetchFeed(limit = 8): Promise<FeedResponse> {
   const controller = new AbortController();
