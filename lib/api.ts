@@ -415,3 +415,39 @@ export async function fetchFeed(limit = 8): Promise<FeedResponse> {
     clearTimeout(timeout);
   }
 }
+
+export interface PreviewMetadata {
+  title: string | null;
+  publisher: string | null;
+  thumbnail_url: string | null;
+}
+
+/**
+ * Lazily fetch oEmbed / Open Graph metadata for one source URL.
+ *
+ * ``/api/ask`` and ``/api/feed`` enrich every card with ``thumbnail_url``
+ * via ``fetch_preview`` before they ship, but a few surfaces still
+ * arrive bare — chiefly the demo-snapshot cards in ``demoScenarios.ts``
+ * which are static front-end fixtures. This helper lets a card without a
+ * baked-in thumbnail hydrate one on mount, hitting the same backend
+ * preview path (3-hour TTL ``PreviewCache``) the live API uses so two
+ * cards on the same page never trigger duplicate oEmbed calls.
+ */
+export async function fetchPreview(url: string): Promise<PreviewMetadata | null> {
+  if (!url || !url.startsWith("http")) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6_000);
+  try {
+    const resp = await fetch(
+      `${API_BASE}/api/preview?url=${encodeURIComponent(url)}`,
+      { signal: controller.signal, cache: "no-store" },
+    );
+    if (!resp.ok) return null;
+    const body = (await resp.json()) as PreviewMetadata;
+    return body;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

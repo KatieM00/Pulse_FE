@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchPreview, PreviewMetadata } from "@/lib/api";
 import {
   FeedItem,
   SourceKind,
@@ -9,6 +10,27 @@ import {
 import styles from "./SourceList.module.css";
 
 const BARBADOS_TZ = "America/Barbados";
+
+/**
+ * Module-scope cache for the lazy preview hydration in
+ * ``PreviewImage``. Two cards pointing at the same URL (e.g. a TikTok
+ * cited twice in the same answer) share one in-flight fetch and
+ * receive the same thumbnail reference, so we never hammer the
+ * upstream oEmbed host from a single page render.
+ */
+const _previewFetchCache = new Map<string, Promise<PreviewMetadata | null>>();
+function _sharedPreview(url: string): Promise<PreviewMetadata | null> {
+  const existing = _previewFetchCache.get(url);
+  if (existing) return existing;
+  const next = fetchPreview(url).finally(() => {
+    // Drop the entry once settled so memory doesn't grow unbounded
+    // across navigations; a future visit to the same URL triggers a
+    // fresh request, which the backend's PreviewCache still hits.
+    _previewFetchCache.delete(url);
+  });
+  _previewFetchCache.set(url, next);
+  return next;
+}
 
 /**
  * Normalised card shape consumed by the shared ``SourceCard`` UI.
@@ -257,19 +279,45 @@ function RadioStationArt({
 function PreviewImage({
   thumbnailUrl,
   alt,
+  fetchOnMissing,
+  sourceUrl,
 }: {
   thumbnailUrl: string | null;
   alt: string;
+  /**
+   * When ``thumbnailUrl`` is null and this is true, call
+   * ``/api/preview?url=sourceUrl`` on mount to lazily hydrate one.
+   * Cached at module scope so duplicate cards on the same page share
+   * the same in-flight request.
+   */
+  fetchOnMissing?: boolean;
+  sourceUrl?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (!thumbnailUrl || failed) return null;
+  const [hydrated, setHydrated] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (thumbnailUrl || !fetchOnMissing || !sourceUrl) return;
+    let cancelled = false;
+    void _sharedPreview(sourceUrl).then((meta) => {
+      if (cancelled) return;
+      if (meta?.thumbnail_url) setHydrated(meta.thumbnail_url);
+      else setFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [thumbnailUrl, fetchOnMissing, sourceUrl]);
+
+  const effective = thumbnailUrl || hydrated;
+  if (!effective || failed) return null;
   return (
     /* Static export runs images unoptimized; preview hosts are
        dynamic and ephemeral so next/image adds nothing here. */
     /* eslint-disable-next-line @next/next/no-img-element */
     <img
       className={styles.previewImage}
-      src={thumbnailUrl}
+      src={effective}
       alt={alt}
       loading="lazy"
       decoding="async"
@@ -373,13 +421,29 @@ function PreviewArea({
   badge: Badge;
 }) {
   const alt = `${source.title || source.label || "source"} preview`;
+  // Lazy hydration: live ``/api/feed`` and ``/api/ask`` already enrich
+  // every card via the backend preview pipeline, but a few surfaces
+  // (the demo scenarios, primarily) ship cards without ``thumbnail_url``.
+  // For social and web kinds that have a public oEmbed / OG surface,
+  // mount-time ``/api/preview`` is a safe fallback — radio and pulse
+  // have no preview so they get their own static badge art instead.
+  const supportsLazyPreview =
+    badge.kind === "tiktok" ||
+    badge.kind === "instagram" ||
+    badge.kind === "youtube" ||
+    badge.kind === "web";
   return (
     <div className={styles.preview}>
       {badge.kind === "radio" ? (
         <RadioStationArt badge={badge} />
       ) : (
         <>
-          <PreviewImage thumbnailUrl={source.thumbnail_url} alt={alt} />
+          <PreviewImage
+            thumbnailUrl={source.thumbnail_url}
+            alt={alt}
+            fetchOnMissing={supportsLazyPreview}
+            sourceUrl={source.url}
+          />
           {badge.kind === "tiktok" && (
             <div className={styles.previewGlyph} aria-hidden="true">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">

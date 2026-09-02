@@ -134,13 +134,19 @@ const circusScenario: DemoScenario = {
     {
       kind: "p",
       text:
-        "Tickets and seat selection are easiest on the show's own site — the radio promos repeat the address every break, and the cast interview on The Beat confirmed same-day tickets at the gate when available.",
-      source_n: 2,
+        "The official **National Cultural Foundation Instagram** reel from the same Crop Over window covers the wider cultural programme at Garrison Savannah — your clearest verified Instagram signal of what's running at the venue right now.",
+      source_n: 7,
+    },
+    {
+      kind: "p",
+      text:
+        "The **Barbados Events Calendar** listing for the Suarez Brothers Circus is still the place to confirm dates and tickets; the radio promos repeat the booking address every break.",
+      source_n: 6,
     },
     {
       kind: "soft_unknown",
       missing:
-        "I don't have a verified dress code or final weekend date — the listed window ended 23 August and the team's own site is the most reliable for tonight's showtime and last performance day.",
+        "I don't have a verified visitor Instagram reel about the Suarez Brothers Circus itself in the corpus yet — only the NCF organiser's Instagram coverage and the visitor TikToks are first-hand video. I also don't have a verified dress code or final-weekend date.",
     },
   ],
   sources: [
@@ -218,6 +224,18 @@ const circusScenario: DemoScenario = {
       publisher: "events.barbados.org",
       reason:
         "Official listing still shows the older 7–23 August window at Belle Junction — kept visible because the radio and social evidence supersede it, not because it's the most current.",
+    },
+    {
+      n: 7,
+      label: "@thencfbarbados",
+      url: "https://www.instagram.com/p/DcWLJ9nIGoO/",
+      kind: "instagram",
+      embed: "DcWLJ9nIGoO",
+      captured_at: "2026-08-22T14:54:30+00:00",
+      title: "National Cultural Foundation on Instagram — Day 2 at CARIFESTA House",
+      publisher: "Instagram",
+      reason:
+        "Official NCF Instagram Reel covering the wider cultural programme at Garrison Savannah during the same Crop Over window — the closest verified Instagram coverage of the venue where the circus has relocated.",
     },
   ],
   progress: [
@@ -610,8 +628,8 @@ export function selectBlocks(scenario: DemoScenario, intents: DemoIntent[]): Blo
     }
   }
 
-  // Cap to keep cards tidy: at most one soft-unknown block, at most
-  // five total paragraphs.
+  // Cap to keep cards tidy: at most one lead, five supporting
+  // paragraphs, and a single soft-unknown trailer for honest gaps.
   const trimmed: DemoBlock[] = [];
   let softKept = false;
   for (const block of include) {
@@ -620,7 +638,7 @@ export function selectBlocks(scenario: DemoScenario, intents: DemoIntent[]): Blo
       softKept = true;
     }
     trimmed.push(block);
-    if (trimmed.length >= 6) break;
+    if (trimmed.length >= 7) break;
   }
   return { blocks: trimmed, sources_ns };
 }
@@ -668,12 +686,26 @@ function shouldKeepBlock(
       );
     }
     if (idx === 3) {
-      // Ticket guidance paragraph.
+      // The official NCF Instagram reel about the wider cultural
+      // programme at Garrison Savannah — appears whenever the user
+      // asks about what's on or whether people recommend it.
       return (
-        wanted.has("admission") ||
-        wanted.has("family") ||
+        wanted.has("venue") ||
+        wanted.has("social_proof") ||
         wanted.has("general") ||
-        wanted.has("today")
+        wanted.has("culture") ||
+        wanted.has("today") ||
+        wanted.has("family")
+      );
+    }
+    if (idx === 4) {
+      // The Barbados Events Calendar listing — the canonical reference
+      // for dates and tickets.
+      return (
+        wanted.has("today") ||
+        wanted.has("admission") ||
+        wanted.has("venue") ||
+        wanted.has("general")
       );
     }
   }

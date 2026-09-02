@@ -329,12 +329,10 @@ function ChatContent() {
               letterSpacing: -0.3,
             }}
           >
-            {demoScenario ? demoScenario.title : "Pulse Concierge"}
+            Pulse Concierge
           </div>
           <div style={{ fontSize: 11, color: "#9CA3AF" }}>
-            {demoScenario
-              ? demoScenario.subtitle
-              : "Live answers from radio, news and social"}
+            Live answers from radio, news and social
           </div>
         </div>
       </header>

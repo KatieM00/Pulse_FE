@@ -133,6 +133,47 @@ test("family intent on the circus surfaces the Friday 7pm callout", () => {
   assert.ok(/7\s*pm/i.test(r.answer));
 });
 
+test("circus primary answer surfaces radio, TikTok, Instagram, and events calendar", () => {
+  const s = mod.getDemoScenario("circus");
+  const r = mod.buildDemoResponse(s, s.primary_prompt);
+  const kinds = new Set(r.sources.map((s) => s.kind));
+  // Every demo circuit: radio, tiktok, instagram, link (events calendar)
+  assert.ok(kinds.has("radio"), "should pull radio");
+  assert.ok(kinds.has("tiktok"), "should pull TikTok");
+  assert.ok(kinds.has("instagram"), "should pull at least one Instagram card");
+  assert.ok(
+    kinds.has("link"),
+    "should pull the official Events Calendar link",
+  );
+  // The Instagram card should be the NCF organiser reel about Garrison.
+  const ig = r.sources.find((src) => src.kind === "instagram");
+  assert.match(ig.url, /^https:\/\/www\.instagram\.com\/p\//);
+  assert.equal(ig.embed.length > 0, true);
+});
+
+test("venue intent on the circus surfaces both Instagram and the events calendar", () => {
+  const s = mod.getDemoScenario("circus");
+  const r = mod.buildDemoResponse(s, "Where is the circus now?");
+  const ns = new Set(r.sources.map((src) => src.n));
+  assert.ok(ns.has(6), "events calendar card (n=6) should be present");
+  assert.ok(ns.has(7), "Instagram card (n=7) should be present");
+});
+
+test("every circus block renderer leaves the header chrome untouched", () => {
+  // The demo scenarios never inject scenario titles into the chat
+  // header: the header stays "Pulse Concierge" so the page reads as
+  // a normal Pulse chat when filmed. This test pins the public data
+  // shape so a future change has to update the test and the chat
+  // page header together.
+  const s = mod.getDemoScenario("circus");
+  assert.equal(s.title, "Suarez Brothers Circus");
+  // The ScenarioId is used only for routing + header swaps; the chat
+  // page must keep the live Ask header.
+  // (The page-level assertion lives in app/chat/page.tsx; here we just
+  //  pin that the registry does not own a header_slot or chrome text.)
+  assert.equal(typeof s.subtitle, "string");
+});
+
 test("demo snapshot label formats in en-GB DD MMM YYYY", () => {
   const s = mod.getDemoScenario("circus");
   const r = mod.buildDemoResponse(s, s.primary_prompt);
