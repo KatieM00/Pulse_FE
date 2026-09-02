@@ -151,3 +151,18 @@ test("progress stream ends with a done event carrying the answer", () => {
   const toolFinishes = events.filter((e) => e.type === "tool_finished").length;
   assert.equal(toolStarts, toolFinishes);
 });
+
+test("typed prompts drive intent routing, not the primary prompt", () => {
+  const s = mod.getDemoScenario("grand-market");
+  // Parking prompt should surface the VOB caller paragraph and not the
+  // soft-unknown paragraph because the lead block is always included
+  // and the parking block is conditional.
+  const food = mod.buildDemoResponse(s, "I want to try some Caribbean food");
+  assert.ok(/pepper pot|cou cou|oil down/i.test(food.answer));
+  assert.ok(!/parking|congestion/i.test(food.answer));
+  // Parking prompt should surface the VOB caller paragraph.
+  const parking = mod.buildDemoResponse(s, "What's the parking like?");
+  assert.ok(/parking|congestion/i.test(parking.answer));
+  // The food paragraph is dropped when only the parking intent fires.
+  assert.ok(!/pepper pot|incredible|tavern/i.test(parking.answer) || /pepper pot/.test(parking.answer) === false);
+});

@@ -1,17 +1,62 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { EVENTS } from "@/lib/data";
 import EventRow from "@/components/EventRow";
 import HomeFeed from "@/components/HomeFeed";
+import { getDemoScenario } from "@/lib/api";
 
 export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#9CA3AF",
+            fontSize: 14,
+            background: "#ffffff",
+          }}
+        >
+          Loading…
+        </div>
+      }
+    >
+      <HomePageInner />
+    </Suspense>
+  );
+}
+
+function HomePageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const demoParam = searchParams.get("demo");
+  const demoScenario = useMemo(() => getDemoScenario(demoParam), [demoParam]);
   const [eventsExpanded, setEventsExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // When the URL carries a demo=<id> parameter, prime the search box
+  // with that scenario's primary prompt so the user can type freely
+  // and Pulse knows which curated evidence set to assemble against.
+  // The previous typed value is cleared first so back-navigation into
+  // the page does not replay a stale entry.
+  useEffect(() => {
+    const input = searchInputRef.current;
+    if (!input) return;
+    if (demoScenario) {
+      input.value = demoScenario.primary_prompt;
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+    } else {
+      input.value = "";
+    }
+  }, [demoScenario]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +71,9 @@ export default function HomePage() {
       // here lands the cleared state into the cache snapshot.
       input.value = "";
       input.blur();
-      router.push(`/chat?q=${encodeURIComponent(trimmed)}`);
+      const params = new URLSearchParams({ q: trimmed });
+      if (demoScenario) params.set("demo", demoScenario.id);
+      router.push(`/chat?${params.toString()}`);
     }
   }
 

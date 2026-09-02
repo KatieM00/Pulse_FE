@@ -346,7 +346,7 @@ export async function askDemoStream(
     throw new Error(`unknown demo: ${demoId}`);
   }
 
-  const resolvedPrompt = scenario.primary_prompt;
+  const resolvedPrompt = userPrompt?.trim() || scenario.primary_prompt;
   const response = buildDemoResponse(scenario, resolvedPrompt);
   const events = renderProgressEvents(scenario, response.sources.length);
 
