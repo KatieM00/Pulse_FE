@@ -69,15 +69,6 @@ function ChatContent() {
   const initialQ = searchParams.get("q") ?? "";
   const demoParam = searchParams.get("demo");
   const demoScenario = useMemo(() => getDemoScenario(demoParam), [demoParam]);
-  const demoLabel = demoScenario
-    ? `Verified demo snapshot · ${new Date(demoScenario.snapshot_at)
-        .toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          timeZone: "America/Barbados",
-        })}`
-    : null;
   const chatSuggestions = demoScenario ? demoSuggestions(demoScenario.id) : SUGGESTIONS;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -346,27 +337,6 @@ function ChatContent() {
               : "Live answers from radio, news and social"}
           </div>
         </div>
-        {demoLabel ? (
-          <span
-            role="note"
-            aria-label={demoLabel}
-            style={{
-              marginLeft: 12,
-              padding: "4px 10px",
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 0.4,
-              textTransform: "uppercase",
-              color: "#92400E",
-              background: "rgba(239,159,39,0.12)",
-              border: "0.5px solid rgba(239,159,39,0.45)",
-              borderRadius: 999,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {demoLabel}
-          </span>
-        ) : null}
       </header>
 
       <div
