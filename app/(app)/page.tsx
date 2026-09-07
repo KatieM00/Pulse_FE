@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useRef } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function HomePage() {
@@ -48,66 +47,11 @@ function HomePageInner() {
   }
 
   return (
-    <div style={{ background: "#ffffff", height: "100%", overflowY: "auto", overflowX: "hidden" }}>
-      {/* Top nav */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "16px 20px 12px",
-          background: "#ffffff",
-          borderBottom: "0.5px solid rgba(0,0,0,0.07)",
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            letterSpacing: -0.5,
-            color: "#1A1A1A",
-          }}
-        >
-          Pulse
-        </span>
-        <span
-          aria-label="Beta release"
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "#F1366F",
-            background: "rgba(241, 54, 111, 0.08)",
-            border: "1px solid rgba(241, 54, 111, 0.18)",
-            borderRadius: 999,
-            padding: "2px 9px",
-          }}
-        >
-          Beta
-        </span>
-        <Link
-          href="https://pulsebarbados.com/"
-          rel="noopener"
-          style={{
-            marginLeft: "auto",
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#6B7280",
-            textDecoration: "none",
-          }}
-        >
-          About Pulse
-        </Link>
-      </header>
-
+    <div style={{ background: "var(--bg)", height: "100%", overflowY: "auto", overflowX: "hidden" }}>
       {/* Hero — question-first, no feed */}
       <section
         style={{
-          padding: "40px 20px 24px",
+          padding: "64px 20px 24px",
           textAlign: "center",
         }}
       >
@@ -217,23 +161,6 @@ function HomePageInner() {
             </button>
           </div>
         </form>
-
-        <Link
-          href="https://pulsebarbados.com/"
-          rel="noopener"
-          style={{
-            display: "inline-block",
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#374151",
-            textDecoration: "none",
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: "rgba(0,0,0,0.04)",
-          }}
-        >
-          See Pulse in action →
-        </Link>
       </section>
 
       {/* Beta status — short, honest, not an apology. */}
