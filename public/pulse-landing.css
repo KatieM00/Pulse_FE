@@ -428,17 +428,16 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
   .section { padding: 64px 0; }
 }
 
-/* ── Demos — three differently shaped cards ─────────── */
+/* ── Demos — three identical-shaped example cards ─────── */
 .demo-block { padding: 24px 0; }
 
-.demo-block + .demo-block { margin-top: 64px; }
+.demo-block + .demo-block { margin-top: 48px; }
 
-/* demo 1 — wide two-column (text + screenshot) */
 .demo-wide {
   display: grid;
   grid-template-columns: 1.05fr 0.95fr;
   gap: 48px;
-  align-items: center;
+  align-items: start;
   padding: 48px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -446,12 +445,60 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
 }
 
 .demo-wide .demo-eyebrow { color: var(--coral); }
-.demo-wide .demo-q { font-size: 32px; line-height: 1.1; letter-spacing: -0.02em; font-weight: 600; color: var(--ink); margin: 12px 0 20px; }
+
+.demo-wide .demo-q {
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 12px 0 20px;
+}
 .demo-wide .demo-q em { font-style: italic; color: var(--brand); padding-bottom: 0.04em; }
-.demo-wide .demo-a { font-size: 16px; line-height: 1.65; color: var(--mid); margin-bottom: 24px; }
+
+.demo-wide .demo-a {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--mid);
+  margin-bottom: 8px;
+}
 .demo-wide .demo-a strong { color: var(--ink); font-weight: 600; }
 
-.demo-wide-shot { border-radius: 14px; border: 1px solid var(--border); overflow: hidden; }
+/* "The question" small blockquote */
+.demo-quote-line {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-mid);
+  padding-left: 14px;
+  border-left: 2px solid var(--brand-soft);
+  margin: 0 0 20px;
+}
+.demo-quote-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 4px;
+}
+
+/* "What this shows" tinted callout */
+.demo-callout {
+  margin: 20px 0 0;
+  padding: 12px 14px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--mid);
+}
+.demo-callout strong { color: var(--ink); font-weight: 600; }
+
+.demo-wide-shot { border-radius: 14px; border: 1px solid var(--border); overflow: hidden; align-self: start; position: sticky; top: 24px; }
 
 .demo-wide-shot img {
   width: 100%;
@@ -461,111 +508,6 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
   aspect-ratio: 380 / 639;
   object-fit: cover;
   object-position: center;
-}
-
-/* demo 2 — number-led proof */
-.demo-numbers {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
-  align-items: end;
-  padding: 48px;
-  background: var(--ink);
-  color: #fff;
-  border-radius: 24px;
-}
-
-.demo-numbers .demo-eyebrow { color: var(--brand-hover); }
-
-.demo-numbers-title {
-  font-size: 28px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  font-weight: 600;
-  margin: 12px 0 16px;
-}
-
-.demo-numbers-title em { font-style: italic; color: #fff; opacity: 0.6; padding-bottom: 0.04em; }
-
-.demo-counter {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  padding-top: 24px;
-}
-
-.demo-counter .num {
-  font-size: 44px;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-weight: 600;
-  color: var(--coral);
-  font-variant-numeric: tabular-nums;
-  margin-bottom: 6px;
-}
-
-.demo-counter .label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* demo 3 — long-form quote */
-.demo-quote {
-  padding: 64px 48px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 36px;
-  align-items: start;
-}
-
-.demo-quote .qmark {
-  font-size: 96px;
-  line-height: 0.8;
-  color: var(--brand);
-  font-family: serif;
-  font-weight: 400;
-  margin-top: -10px;
-}
-
-.demo-quote .demo-eyebrow { color: var(--brand); }
-
-.demo-quote-body {
-  font-size: 22px;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
-
-.demo-quote-body em { font-style: italic; color: var(--brand-deep); padding-bottom: 0.04em; }
-
-.demo-quote-attribution {
-  margin-top: 24px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.demo-quote-attribution .play {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--coral);
-  color: #fff;
 }
 
 /* ── demo shared pieces ───────────────────────────── */
@@ -636,17 +578,12 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
 
 /* responsive demo cards */
 @media (max-width: 900px) {
-  .demo-wide,
-  .demo-numbers,
-  .demo-quote {
+  .demo-wide {
     grid-template-columns: 1fr;
     gap: 24px;
     padding: 32px 24px;
   }
-  .demo-counter { grid-template-columns: 1fr 1fr; gap: 16px 24px; }
-  .demo-quote .qmark { font-size: 64px; }
-  .demo-quote-body { font-size: 18px; }
-  .demo-counter .num { font-size: 36px; }
+  .demo-callout { margin-top: 16px; }
 }
 
 /* ── Engine architecture page ──────────────────────── */
