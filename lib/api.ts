@@ -1,4 +1,5 @@
-import { AskProgressEvent, AskResponse, FeedResponse } from "./types";
+import { AskProgressEvent, AskResponse, FeedResponse, FeedTheme } from "./types";
+import { normaliseGroupedFeed } from "./groupedFeed";
 import {
   buildDemoResponse,
   DemoId,
@@ -411,6 +412,71 @@ export async function fetchFeed(limit = 8): Promise<FeedResponse> {
       throw new Error(`feed failed (${resp.status})`);
     }
     return (await resp.json()) as FeedResponse;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Fetch the legacy flat ``{items[]}`` feed. The default ``fetchFeed``
+ * returns the themed shape; this helper keeps the ungrouped contract
+ * reachable for tests and the explicit ``?flat=true`` debug shim.
+ */
+export async function fetchFlatFeed(limit = 20): Promise<FeedResponse> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+  try {
+    const resp = await fetch(
+      `${API_BASE}/api/feed?flat=true&limit=${Math.max(1, Math.min(limit, 50))}`,
+      { signal: controller.signal, cache: "no-store" },
+    );
+    if (!resp.ok) {
+      throw new Error(`feed failed (${resp.status})`);
+    }
+    return (await resp.json()) as FeedResponse;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export interface FetchGroupedFeedOptions {
+  maxThemes?: number;
+  itemsPerTheme?: number;
+  /** Optional theme id filter (single theme page route). */
+  theme?: string;
+}
+
+/**
+ * Fetch the themed ``/api/feed`` payload and normalise the response so
+ * the renderer always sees a stable list of ``FeedTheme`` entries
+ * (capped at ``maxThemes``, with empty items stripped). The default
+ * ``fetchFeed`` keeps the untyped :data:`FeedResponse` shape so legacy
+ * callers don't need to change; this helper is the typed entrypoint
+ * the new home page uses.
+ */
+export async function fetchGroupedFeed(
+  options: FetchGroupedFeedOptions = {},
+): Promise<FeedTheme[]> {
+  const maxThemes = Math.max(1, Math.min(options.maxThemes ?? 4, 7));
+  const itemsPerTheme = Math.max(0, Math.min(options.itemsPerTheme ?? 3, 10));
+  const params = new URLSearchParams({
+    max_themes: String(maxThemes),
+    items_per_theme: String(itemsPerTheme),
+  });
+  if (options.theme) params.set("theme", options.theme);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const resp = await fetch(
+      `${API_BASE}/api/feed?${params.toString()}`,
+      { signal: controller.signal, cache: "no-store" },
+    );
+    if (!resp.ok) {
+      throw new Error(`feed failed (${resp.status})`);
+    }
+    const body = (await resp.json()) as FeedResponse;
+    return normaliseGroupedFeed(body, { maxThemes, itemsPerTheme });
   } finally {
     clearTimeout(timeout);
   }

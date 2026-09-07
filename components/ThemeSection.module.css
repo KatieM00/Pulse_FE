@@ -1,0 +1,172 @@
+.section {
+  position: relative;
+  margin: 0 0 14px 0;
+  padding: 14px 12px 12px 16px;
+  border-radius: 14px;
+  border: 0.5px solid rgba(0, 0, 0, 0.07);
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.accentStripe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+}
+
+.accentGreen {
+  background: #16A34A;
+}
+.accentOrange {
+  background: #F97316;
+}
+.accentPurple {
+  background: #9333EA;
+}
+.accentBlue {
+  background: #2563EB;
+}
+.accentAmber {
+  background: #F59E0B;
+}
+.accentTeal {
+  background: #0D9488;
+}
+.accentGrey {
+  background: #6B7280;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.iconChip {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.iconChipGreen {
+  background: rgba(22, 163, 74, 0.12);
+}
+.iconChipOrange {
+  background: rgba(249, 115, 22, 0.12);
+}
+.iconChipPurple {
+  background: rgba(147, 51, 234, 0.12);
+}
+.iconChipBlue {
+  background: rgba(37, 99, 235, 0.12);
+}
+.iconChipAmber {
+  background: rgba(245, 158, 11, 0.14);
+}
+.iconChipTeal {
+  background: rgba(13, 148, 136, 0.12);
+}
+.iconChipGrey {
+  background: rgba(107, 114, 128, 0.12);
+}
+
+.textColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.headline {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #1A1A1A;
+  letter-spacing: -0.2px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #6B7280;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.viewAll {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+  background: transparent;
+}
+
+.viewAllGreen {
+  color: #15803D;
+}
+.viewAllOrange {
+  color: #C2410C;
+}
+.viewAllPurple {
+  color: #7E22CE;
+}
+.viewAllBlue {
+  color: #1D4ED8;
+}
+.viewAllAmber {
+  color: #B45309;
+}
+.viewAllTeal {
+  color: #0F766E;
+}
+.viewAllGrey {
+  color: #374151;
+}
+
+.viewAll:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.viewAll:focus-visible {
+  outline: 2px solid #EF9F27;
+  outline-offset: 2px;
+}
+
+.viewAllChevron {
+  width: 12px;
+  height: 12px;
+}
+
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signalsBadge {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  letter-spacing: 0.1px;
+}

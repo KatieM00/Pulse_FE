@@ -22,7 +22,7 @@
 
 import type { AskProgressEvent, SourceRef } from "./types";
 
-export type DemoId = "circus" | "grand-market";
+export type DemoId = "circus" | "grand-market" | "cricket";
 
 export interface DemoSource {
   /** Stable cite number, starting at 1. */
@@ -479,9 +479,157 @@ const grandMarketScenario: DemoScenario = {
   ],
 };
 
+/* ------------------------------------------------------------------ */
+/* Cricket — Caribbean Premier League at Kensington Oval.            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Cricket scenario anchored to the live CPL broadcast window of Sunday
+ * 6 September 2026. Four FM radio sources all confirm the same fixture
+ * in their own words: the Beat 104.1 commentary, the LIFE 97.5 schedule
+ * read, the Q 100.7 promo, and the Beat's live call from Kensington
+ * Oval. The story the demo tells: when something is being broadcast on
+ * every station at once, the radio IS the source — there is no news
+ * article to link to, the audio IS the evidence.
+ */
+
+const CRICKET_SNAPSHOT_ISO = "2026-09-06T20:00:00Z";
+
+const cricketScenario: DemoScenario = {
+  id: "cricket",
+  title: "Caribbean Premier League at Kensington Oval",
+  subtitle: "Kensington Oval · Sunday 6 September 2026 snapshot",
+  snapshot_at: CRICKET_SNAPSHOT_ISO,
+  prompts: [
+    "What's happening with cricket in Barbados?",
+    "What cricket matches are on this week?",
+    "Is there a cricket match at Kensington Oval?",
+    "Tell me about cricket in Barbados.",
+    "When is the next CPL match in Barbados?",
+    "What's the latest on the Caribbean Premier League?",
+  ],
+  primary_prompt: "What's happening with cricket in Barbados?",
+  blocks: [
+    {
+      kind: "p_multi",
+      text:
+        "The **Caribbean Premier League** is live at **Kensington Oval** this weekend. The Beat 104.1 FM is the **official radio rights holder** for the tournament, and the St. Lucia Kings are the visiting team for today's fixture.",
+      sources_ns: [1, 2],
+    },
+    {
+      kind: "p_multi",
+      text:
+        "Q 100.7 FM is running live ball-by-ball commentary alongside CBC TV8 — that's the easiest place to follow the match live if you're not at the ground. The match build-up started mid-afternoon.",
+      sources_ns: [4],
+    },
+    {
+      kind: "p",
+      text:
+        "LIFE 97.5 confirms the bigger picture for the month: T20 cricket runs through August and September, with **more games than ever in Barbados**, including the playoffs and the final — all staged at Kensington Oval.",
+      source_n: 3,
+    },
+    {
+      kind: "p",
+      text:
+        "The Beat's commentary team is calling the match from the press box — you can hear the crowd, the pitch report, and the regional broadcast handoff in their live audio if you want to verify any of the above.",
+      source_n: 2,
+    },
+    {
+      kind: "soft_unknown",
+      missing:
+        "I don't have a verified visitor TikTok or Instagram post from inside Kensington Oval for this fixture yet — the strongest evidence right now is radio commentary, which is unusual for event coverage and worth saying out loud.",
+    },
+  ],
+  sources: [
+    {
+      n: 1,
+      label: "the-beat-1041",
+      url: "https://starcomnetwork.net",
+      kind: "radio",
+      embed: "/radio/the-beat-1041-chunk-1788735256968.m4a",
+      captured_at: "2026-09-06T22:54:16+00:00",
+      station_frequency_mhz: 104.1,
+      title: "The Beat 104.1 FM",
+      publisher: "Starcom Network",
+      reason:
+        "Confirms The Beat 104.1 is the official CPL 2026 radio rights holder for Barbados, broadcasting every six from Kensington Oval.",
+    },
+    {
+      n: 2,
+      label: "the-beat-1041",
+      url: "https://starcomnetwork.net",
+      kind: "radio",
+      embed: "/radio/the-beat-1041-chunk-1788737151678.m4a",
+      captured_at: "2026-09-06T23:25:51+00:00",
+      station_frequency_mhz: 104.1,
+      title: "The Beat 104.1 FM — live from Kensington",
+      publisher: "Starcom Network",
+      reason:
+        "Live commentary from the Kensington Oval press box at the start of the St Lucia Kings innings.",
+    },
+    {
+      n: 3,
+      label: "life-975",
+      url: "https://starcomnetwork.net",
+      kind: "radio",
+      embed: "/radio/life-975-chunk-1788735286295.m4a",
+      captured_at: "2026-09-06T19:47:16+00:00",
+      station_frequency_mhz: 97.5,
+      title: "LIFE 97.5",
+      publisher: "Starcom Network",
+      reason:
+        "Schedule read for the August–September T20 window in Barbados, confirming playoffs and final at Kensington Oval.",
+    },
+    {
+      n: 4,
+      label: "q-1007",
+      url: "https://www.cbc.bb",
+      kind: "radio",
+      embed: "/radio/q-1007-chunk-1788736491192.m4a",
+      captured_at: "2026-09-06T23:14:51+00:00",
+      station_frequency_mhz: 100.7,
+      title: "Q 100.7 FM",
+      publisher: "CBC",
+      reason:
+        "Live promo for the CBC Sports broadcast of the CPL match on TV8 and Q 100.7.",
+    },
+  ],
+  progress: [
+    {
+      tool_name: "resolve_entities",
+      tool_label: "Resolve entities",
+      elapsed_ms: 120,
+      result_count: 3,
+      summary: "Kensington Oval, Caribbean Premier League and Barbados Cricket Association resolved.",
+    },
+    {
+      tool_name: "search_text",
+      tool_label: "Search local radio",
+      elapsed_ms: 380,
+      result_count: 8,
+      summary: "The Beat, LIFE, Q 100.7 and VOB all carrying CPL commentary and promos.",
+    },
+    {
+      tool_name: "expand_entity",
+      tool_label: "Expand Kensington Oval",
+      elapsed_ms: 210,
+      result_count: 12,
+      summary: "Confirmed cricket claims linked to the ground across 5 source types.",
+    },
+    {
+      tool_name: "search_text",
+      tool_label: "Filter to live coverage",
+      elapsed_ms: 160,
+      result_count: 4,
+      summary: "Kept the four clearest live broadcast sources for the answer.",
+    },
+  ],
+};
+
 const SCENARIOS: Record<DemoId, DemoScenario> = {
   circus: circusScenario,
   "grand-market": grandMarketScenario,
+  cricket: cricketScenario,
 };
 
 /* ------------------------------------------------------------------ */
@@ -489,12 +637,12 @@ const SCENARIOS: Record<DemoId, DemoScenario> = {
 /* ------------------------------------------------------------------ */
 
 export function listDemoIds(): DemoId[] {
-  return ["circus", "grand-market"];
+  return ["circus", "grand-market", "cricket"];
 }
 
 export function getDemoScenario(id: string | null | undefined): DemoScenario | null {
   if (!id) return null;
-  if (id === "circus" || id === "grand-market") return SCENARIOS[id];
+  if (id === "circus" || id === "grand-market" || id === "cricket") return SCENARIOS[id];
   return null;
 }
 
@@ -513,9 +661,14 @@ export type DemoIntent =
   | "logistics"
   | "admission"
   | "social_proof"
+  | "cricket"
   | "general";
 
 const INTENT_PATTERNS: Array<{ intent: DemoIntent; patterns: RegExp[] }> = [
+  {
+    intent: "cricket",
+    patterns: [/\bcricket\b/i, /\bcpl\b/i, /\bkensington oval\b/i, /\btridents\b/i, /\bwest indies\b/i, /\bbca\b/i],
+  },
   {
     intent: "family",
     patterns: [
@@ -737,6 +890,14 @@ function shouldKeepBlock(
         wanted.has("social_proof")
       );
     }
+  }
+
+  if (scenarioId === "cricket") {
+    // Cricket has only one coherent story to tell: the live radio IS the
+    // coverage. Show all supporting blocks for any cricket-related intent.
+    if (idx === 1) return true; // Q 100.7 / CBC TV8 broadcast promo
+    if (idx === 2) return true; // LIFE 97.5 schedule read
+    if (idx === 3) return true; // The Beat live commentary note
   }
 
   return false;

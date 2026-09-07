@@ -105,8 +105,56 @@ export interface FeedItem extends SourceCardBase {
   kind: SourceKind;
 }
 
-export interface FeedResponse {
+/**
+ * One themed home-feed section returned by the default ``/api/feed``
+ * shape. The grouped variant threads claim themes (sports, events,
+ * weather, ...) into the home page so each section carries a
+ * topical headline and a small set of source cards.
+ *
+ * Theme accent is a colour-name token the renderer maps to a CSS
+ * palette; ``icon`` is a single emoji rendered inside a tinted chip.
+ * ``view_all`` is the static frontend route (e.g. ``/theme/sports``)
+ * that filters the grouped feed by theme id.
+ */
+export type ThemeAccent =
+  | "green"
+  | "orange"
+  | "purple"
+  | "blue"
+  | "amber"
+  | "teal"
+  | "grey";
+
+export interface FeedTheme {
+  id: string;
+  icon: string;
+  accent: ThemeAccent;
+  headline: string;
+  subtitle: string;
   items: FeedItem[];
+  view_all: string;
+  /** Optional debug surface for trace views. Not rendered in production UI. */
+  claim_count?: number;
+}
+
+/**
+ * Discriminated union: the default ``/api/feed`` returns the themed
+ * shape; ``?flat=true`` returns the legacy flat shape. Consumers
+ * narrow on the presence of one of the two top-level keys.
+ */
+export type FeedResponse =
+  | {
+      themes: FeedTheme[];
+      as_of?: string;
+      window_hours?: number;
+    }
+  | { items: FeedItem[] };
+
+/** Narrow a :data:`FeedResponse` to the themed variant. */
+export function isGroupedFeedResponse(
+  body: FeedResponse,
+): body is Extract<FeedResponse, { themes: FeedTheme[] }> {
+  return Array.isArray((body as { themes?: unknown }).themes);
 }
 
 export interface AskResponse {
