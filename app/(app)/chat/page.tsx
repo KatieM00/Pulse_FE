@@ -8,6 +8,7 @@ import { matchApprovedPrompt } from "@/lib/demoScenarios";
 import EventRow from "@/components/EventRow";
 import SourceList from "@/components/SourceList";
 import ToolProgress from "@/components/ToolProgress";
+import DemoExplainer from "./DemoExplainer";
 
 const SUGGESTIONS = [
   "What's on today?",
@@ -77,6 +78,7 @@ function ChatContent() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const seededRef = useRef<string | null>(null);
+  const [isFollowUp, setIsFollowUp] = useState(false);
   const sendingRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -108,7 +110,7 @@ function ChatContent() {
     [],
   );
 
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = useCallback(async (text: string, viaSeed = false) => {
     const trimmed = text.trim();
     if (!trimmed || sendingRef.current) return;
     sendingRef.current = true;
@@ -127,6 +129,7 @@ function ChatContent() {
       finalised: false,
     };
     setMessages((prev) => [...prev, userMsg, pendingMsg]);
+    if (demoScenario && !viaSeed) setIsFollowUp(true);
     setInputValue("");
     setSending(true);
 
@@ -254,7 +257,7 @@ function ChatContent() {
     seededRef.current = seedKey;
     messagesRef.current = [];
     setMessages([]);
-    void sendMessage(demoScenario.primary_prompt);
+    void sendMessage(demoScenario.primary_prompt, true);
   }, [demoScenario, initialQ, sendMessage]);
 
   useEffect(() => {
@@ -269,6 +272,8 @@ function ChatContent() {
     e.preventDefault();
     void sendMessage(inputValue);
   }
+
+  const showDemoExplainer = !isFollowUp;
 
   return (
     <div
@@ -451,6 +456,14 @@ function ChatContent() {
                 ))}
               </div>
             )}
+
+            {demoScenario &&
+              showDemoExplainer &&
+              msg.role === "assistant" &&
+              msg.finalised &&
+              (msg.sources?.length ?? 0) > 0 && (
+                <DemoExplainer scenario={demoScenario} sources={msg.sources ?? []} />
+              )}
 
             {msg.role === "assistant" &&
               msg.sources &&

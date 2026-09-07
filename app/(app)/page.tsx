@@ -1,11 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useRef } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { EVENTS } from "@/lib/data";
-import EventRow from "@/components/EventRow";
-import HomeFeed from "@/components/HomeFeed";
-import { getDemoScenario } from "@/lib/api";
 
 export default function HomePage() {
   return (
@@ -35,44 +32,19 @@ function HomePageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const demoParam = searchParams.get("demo");
-  const demoScenario = useMemo(() => getDemoScenario(demoParam), [demoParam]);
-  const [eventsExpanded, setEventsExpanded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // When the URL carries a demo=<id> parameter, prime the search box
-  // with that scenario's primary prompt so the user can type freely
-  // and Pulse knows which curated evidence set to assemble against.
-  // The previous typed value is cleared first so back-navigation into
-  // the page does not replay a stale entry.
-  useEffect(() => {
-    const input = searchInputRef.current;
-    if (!input) return;
-    if (demoScenario) {
-      input.value = demoScenario.primary_prompt;
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-    } else {
-      input.value = "";
-    }
-  }, [demoScenario]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const input = searchInputRef.current;
     if (!input) return;
     const trimmed = input.value.trim();
-    if (trimmed) {
-      // Clear the DOM value synchronously, before the App Router
-      // snapshots this page for its cache. The router-back flow
-      // restores the cached DOM, so any state-only reset would be
-      // overwritten on the next visit. Setting the input value
-      // here lands the cleared state into the cache snapshot.
-      input.value = "";
-      input.blur();
-      const params = new URLSearchParams({ q: trimmed });
-      if (demoScenario) params.set("demo", demoScenario.id);
-      router.push(`/chat?${params.toString()}`);
-    }
+    if (!trimmed) return;
+    input.value = "";
+    input.blur();
+    const params = new URLSearchParams({ q: trimmed });
+    if (demoParam) params.set("demo", demoParam);
+    router.push(`/chat?${params.toString()}`);
   }
 
   return (
@@ -82,7 +54,7 @@ function HomePageInner() {
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          gap: 10,
           padding: "16px 20px 12px",
           background: "#ffffff",
           borderBottom: "0.5px solid rgba(0,0,0,0.07)",
@@ -101,35 +73,72 @@ function HomePageInner() {
         >
           Pulse
         </span>
+        <span
+          aria-label="Beta release"
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#F1366F",
+            background: "rgba(241, 54, 111, 0.08)",
+            border: "1px solid rgba(241, 54, 111, 0.18)",
+            borderRadius: 999,
+            padding: "2px 9px",
+          }}
+        >
+          Beta
+        </span>
+        <Link
+          href="https://pulsebarbados.com/"
+          rel="noopener"
+          style={{
+            marginLeft: "auto",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "#6B7280",
+            textDecoration: "none",
+          }}
+        >
+          About Pulse
+        </Link>
       </header>
 
-      {/* Hero */}
-      <section style={{ padding: "32px 20px 20px", textAlign: "center" }}>
+      {/* Hero — question-first, no feed */}
+      <section
+        style={{
+          padding: "40px 20px 24px",
+          textAlign: "center",
+        }}
+      >
         <h1
           style={{
             fontSize: 26,
             fontWeight: 700,
             color: "#1A1A1A",
-            margin: "0 0 8px 0",
+            margin: "0 0 6px 0",
             lineHeight: 1.2,
             letterSpacing: -0.5,
           }}
         >
-          What&apos;s the vibe today?
+          What&apos;s happening in Barbados?
         </h1>
         <p
           style={{
             fontSize: 15,
             color: "#6B7280",
-            margin: "0 0 24px 0",
+            margin: "0 0 20px 0",
             lineHeight: 1.5,
           }}
         >
-          Live from radio, news and social, across Barbados.
+          Live from radio, news and social, with sources you can inspect.
         </p>
 
-        {/* Single, larger search control with embedded submit */}
-        <form onSubmit={handleSearch} role="search">
+        <form
+          onSubmit={handleSearch}
+          role="search"
+          style={{ marginBottom: 16 }}
+        >
           <label
             htmlFor="pulse-search"
             style={{
@@ -141,7 +150,7 @@ function HomePageInner() {
               whiteSpace: "nowrap",
             }}
           >
-            Search Pulse
+            Ask Pulse anything
           </label>
           <div
             style={{
@@ -152,7 +161,6 @@ function HomePageInner() {
               borderRadius: 14,
               border: "0.5px solid rgba(0,0,0,0.15)",
               background: "#FAFAFA",
-              transition: "border-color 0.15s, box-shadow 0.15s",
             }}
           >
             <input
@@ -160,7 +168,7 @@ function HomePageInner() {
               ref={searchInputRef}
               type="search"
               defaultValue=""
-              placeholder="Ask Pulse anything"
+              placeholder="Ask Pulse anything about Barbados"
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -181,7 +189,7 @@ function HomePageInner() {
                 width: 56,
                 minWidth: 44,
                 minHeight: 44,
-                margin: "4px",
+                margin: 4,
                 borderRadius: 10,
                 border: "none",
                 background: "#EF9F27",
@@ -209,93 +217,58 @@ function HomePageInner() {
             </button>
           </div>
         </form>
-      </section>
 
-      {/* Live feed */}
-      <div style={{ padding: "8px 16px 0" }}>
-        <header
+        <Link
+          href="https://pulsebarbados.com/"
+          rel="noopener"
           style={{
-            display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            margin: "0 4px 10px",
+            display: "inline-block",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "#374151",
+            textDecoration: "none",
+            padding: "8px 14px",
+            borderRadius: 999,
+            background: "rgba(0,0,0,0.04)",
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 700,
-              color: "#1A1A1A",
-            }}
-          >
-            Signals grouped automatically
-          </h2>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "#9CA3AF",
-            }}
-          >
-            Latest source-backed signals across Barbados
-          </span>
-        </header>
-        <HomeFeed maxThemes={4} itemsPerTheme={3} />
-      </div>
+          See Pulse in action →
+        </Link>
+      </section>
 
-      {/* Body content */}
-      <div style={{ padding: "16px 16px 24px" }}>
-        {/* Events toggle — fixtures only until #14/#17 land live events. */}
-        <section aria-label="Upcoming events">
-          <button
-            onClick={() => setEventsExpanded((v) => !v)}
-            aria-expanded={eventsExpanded}
-            style={{
-              width: "100%",
-              padding: "13px 16px",
-              borderRadius: 12,
-              border: "0.5px solid rgba(239,159,39,0.35)",
-              background: "#ffffff",
-              color: "#1A1A1A",
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
+      {/* Beta status — short, honest, not an apology. */}
+      <section
+        style={{
+          padding: "20px 20px 32px",
+          margin: "0 auto",
+          maxWidth: 480,
+        }}
+      >
+        <p
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "#6B7280",
+            background: "rgba(0,0,0,0.03)",
+            border: "0.5px solid rgba(0,0,0,0.06)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            margin: 0,
+            textAlign: "center",
+          }}
+        >
+          <strong style={{ color: "#374151", fontWeight: 600 }}>Beta</strong>{" "}
+          · Coverage is improving daily. Every answer links back to the source it came
+          from — always check them. Spotted a problem?{" "}
+          <a
+            href="mailto:hello@pulsebarbados.com?subject=Pulse%20beta%20feedback"
+            style={{ color: "#F1366F", textDecoration: "none", fontWeight: 500 }}
           >
-            <span>Click to view upcoming events</span>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#6B7280"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              style={{
-                transform: eventsExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s",
-                flexShrink: 0,
-              }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {eventsExpanded && (
-            <div style={{ marginTop: 12 }}>
-              {EVENTS.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
+            Report it
+          </a>
+          .
+        </p>
+      </section>
     </div>
   );
 }
