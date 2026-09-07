@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Pulse — Ask anything about Barbados</title>
-<meta name="description" content="Ask anything about Barbados. Pulse connects live radio, news and social to answer questions, with sources you can inspect." />
+<title>Pulse, tunes in so you don't have to.</title>
+<meta name="description" content="Ask anything about Barbados. Pulse connects live radio, news and social to answer, with sources you can inspect." />
 <link rel="icon" href="/favicon.ico" />
 <link rel="stylesheet" href="/pulse-landing.css" />
 </head>
@@ -14,179 +14,227 @@
   <div class="container nav-inner">
     <a class="brand" href="/">
       <img src="/pulse-logo.png" alt="Pulse" />
-      <span class="beta-badge">Beta</span>
+      <span class="brand-pill">Beta</span>
     </a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="https://app.pulsebarbados.com/" rel="noopener">Open Pulse</a>
+      <a href="/#demos">Demos</a>
       <a href="/build.html">How it works</a>
     </nav>
+    <a class="nav-cta" href="https://app.pulsebarbados.com/" rel="noopener">
+      Open Pulse
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
   </div>
 </header>
 
-<!-- ── Hero ─────────────────────────────────────────────────────── -->
-<section class="hero hero-search">
-  <div class="container hero-inner">
-    <div>
-      <h1 class="hero-title">Pulse tunes in so you don't have to.</h1>
-      <p class="hero-sub">
-        Ask anything about Barbados. Pulse connects live radio, news and social to answer
-        your question — with sources you can inspect.
-      </p>
+<!-- ── Hero ─────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <p class="hero-eyebrow">Live in Barbados · Future Caribbean Buildathon</p>
+    <div class="hero-grid">
+      <div>
+        <h1 class="hero-title">Pulse, <em>tunes in</em> so you don't have&nbsp;to.</h1>
+        <p class="hero-sub">
+          Ask anything about Barbados. Pulse listens to live radio, reads the news and watches
+          social to answer your question, with sources you can play.
+        </p>
 
-      <form class="ask-form" action="https://app.pulsebarbados.com/chat" method="get" role="search">
-        <label for="pulse-ask" class="sr-only">Ask Pulse a question</label>
-        <input
-          id="pulse-ask"
-          name="q"
-          type="search"
-          required
-          placeholder="Ask anything about Barbados"
-          class="ask-input"
-        />
-        <button type="submit" class="ask-button">Ask Pulse</button>
-      </form>
+        <form class="ask" action="https://app.pulsebarbados.com/chat" method="get" role="search">
+          <label for="pulse-ask" class="sr-only">Ask Pulse a question</label>
+          <input
+            id="pulse-ask"
+            name="q"
+            type="search"
+            required
+            placeholder="Ask anything about Barbados"
+            class="ask-input"
+          />
+          <button type="submit" class="ask-button">
+            Ask Pulse
+            <span class="arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+        </form>
 
-      <p class="hero-note">
-        Coverage improving daily · Sources are always shown · <a href="mailto:hello@pulsebarbados.com">Report a problem</a>
-      </p>
+        <div class="hero-meta">
+          <span>10 FM stations · news · TikTok · Instagram</span>
+          <span>
+            <a href="mailto:hello@pulsebarbados.com">Report a problem</a>
+            <span aria-hidden="true"> · </span>
+            <a href="mailto:hello@pulsebarbados.com?subject=First%20concierge%20trial">Become a first customer</a>
+          </span>
+        </div>
+      </div>
 
-      <p class="hero-scroll">
-        <a href="#examples">See what Pulse can do ↓</a>
-      </p>
+      <!-- Real answer card, not a phone mockup -->
+      <aside class="hero-prop" aria-label="Sample Pulse answer">
+        <div class="prop-meta">
+          <span><span class="dot"></span>Live</span>
+          <span>Mon, 6 Sep · 14:02</span>
+        </div>
+        <p class="prop-q">What is happening with cricket at Kensington Oval?</p>
+        <p class="prop-a">
+          The CPL match is <strong>live now</strong> at Kensington Oval. <strong>The Beat 104.1</strong>
+          is running ball-by-ball commentary and <strong>LIFE 97.5</strong> carried the
+          preview this morning.
+        </p>
+        <ul class="prop-sources" aria-label="Sources">
+          <li class="prop-source">The Beat 104.1</li>
+          <li class="prop-source">LIFE 97.5</li>
+          <li class="prop-source">Q 100.7</li>
+          <li class="prop-source">VOB 92.9</li>
+        </ul>
+      </aside>
     </div>
   </div>
 </section>
 
-<!-- ── Three worked demos ─────────────────────────────────────── -->
-<section class="demos" id="examples">
+<!-- ── Three differently-shaped demos ─────────────── -->
+<section class="section" id="demos">
   <div class="container">
-    <p class="example-eyebrow">Three examples of what Pulse can uncover</p>
-    <h2 class="example-title">Every answer is backed by live radio, news and social — with sources you can play.</h2>
+    <p class="section-label">Three examples, three shapes</p>
+    <h2 class="section-title">Every answer is backed by <em>live radio, news and social</em>.</h2>
+    <p class="section-sub">
+      The samples below are real Pulse runs against the production graph. Each one shows
+      what Pulse did with the evidence it had, not a polished demo video.
+    </p>
 
-    <!-- Circus -->
-    <article class="example-card">
-      <div class="example-text">
-        <p class="example-label">When a listing is out of date</p>
-        <span class="pill">Dated snapshot · Friday 28 August 2026</span>
-        <h3 class="example-q">🎪 Suarez Brothers Circus · Garrison Savannah</h3>
-        <p class="example-what"><strong>The question:</strong> “I'm looking for something different to do with my family tonight. What's going on?”</p>
-        <p class="example-a">
-          The biggest circus from Mexico is running ten days of family shows. Pulse answers
-          <strong>Garrison Savannah, 7 pm</strong> — not Belle Junction — because
-          <strong>Q 100.7 FM</strong> and <strong>The Beat 104.1 FM</strong> both
-          confirmed the move mid-run, and recent visitor TikToks agree.
-        </p>
-        <ul class="sources">
-          <li>Q 100.7 FM broadcast</li>
-          <li>The Beat 104.1 FM broadcast</li>
-          <li>Two TikTok visitor posts</li>
-          <li><strong>1 superseded event listing</strong> (Belle Junction)</li>
-        </ul>
-        <p class="example-what">
-          <strong>What this shows:</strong> when an older listing and newer evidence
-          disagree, Pulse explains the change rather than silently picking one source.
-        </p>
-        <a class="btn btn-primary" href="https://app.pulsebarbados.com/chat?demo=circus&amp;q=I%27m%20looking%20for%20something%20different%20to%20do%20with%20my%20family%20tonight.%20What%27s%20going%20on%3F" target="_blank" rel="noopener noreferrer">Open the Circus in the app →</a>
-      </div>
-      <div class="example-shot">
-        <img src="/demo_circus_full.jpg" alt="Pulse Ask answering a question about the Suarez Brothers Circus with bolded claims and source-backed reasoning" />
-      </div>
+    <!-- ── Demo 1: wide two-column ───────────────── -->
+    <article class="demo-block">
+      <article class="demo-wide">
+        <div>
+          <p class="demo-eyebrow">When a listing is out of date</p>
+          <span class="demo-pill">Dated snapshot · Fri 28 Aug 2026</span>
+          <h3 class="demo-q">Suarez Brothers Circus at <em>Garrison Savannah</em></h3>
+          <p class="demo-a">
+            The biggest circus from Mexico is running ten days of family shows. Pulse answers
+            <strong>Garrison Savannah, 7 pm</strong>, not Belle Junction, because
+            <strong>Q 100.7 FM</strong> and <strong>The Beat 104.1 FM</strong> both confirmed
+            the move mid-run, and recent visitor TikToks agree.
+          </p>
+          <ul class="source-list" aria-label="Sources">
+            <li>Q 100.7 FM broadcast</li>
+            <li>The Beat 104.1 FM broadcast</li>
+            <li>2 TikTok visitor posts</li>
+            <li>1 superseded event listing</li>
+          </ul>
+          <a class="demo-cta"
+             href="https://app.pulsebarbados.com/chat?demo=circus&amp;q=I%27m%20looking%20for%20something%20different%20to%20do%20with%20my%20family%20tonight.%20What%27s%20going%20on%3F"
+             target="_blank" rel="noopener noreferrer">
+            Open the Circus in the app
+            <span class="arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </a>
+        </div>
+        <div class="demo-wide-shot">
+          <img src="/demo_circus_full.jpg" alt="Pulse answering a question about the Suarez Brothers Circus with bolded claims and source-backed reasoning." />
+        </div>
+      </article>
     </article>
 
-    <!-- Grand Market -->
-    <article class="example-card">
-      <div class="example-text">
-        <p class="example-label">When several sources tell the story</p>
-        <span class="pill">Dated snapshot · Friday 28 August 2026</span>
-        <h3 class="example-q">🎉 Caribbean Grand Market · CARIFESTA House, Waterford</h3>
-        <p class="example-what"><strong>The question:</strong> “I'm looking for something cultural to do. What's going on this week?”</p>
-        <p class="example-a">
-          Ten days of regional makers (Grenada, Jamaica, Guyana, Suriname, Trinidad &amp;
-          Tobago, Barbados), fashion, art and craft, wellness products, food court.
-          <strong>Free admission. Open 10 am–10 pm daily.</strong>
-        </p>
-        <ul class="sources">
-          <li>98.1 The One (radio)</li>
-          <li>VOB 92.9 (radio)</li>
-          <li>The Beat 104.1 (radio)</li>
-          <li>National Cultural Foundation Instagram (organiser)</li>
-          <li>Two visitor TikToks</li>
-          <li>Attendee Instagram photos</li>
-        </ul>
-        <p class="example-what">
-          <strong>What this shows:</strong> six sources mostly agreed on venue, dates and
-          hours — one visitor TikTok disagreed on the closing date (31 vs 30 August). Pulse
-          reported both windows and flagged which was the safer recommendation.
-        </p>
-        <a class="btn btn-primary" href="https://app.pulsebarbados.com/chat?demo=grand-market&amp;q=I%27m%20looking%20for%20something%20cultural%20to%20do.%20What%27s%20going%20on%20this%20week%3F" target="_blank" rel="noopener noreferrer">Open the Grand Market in the app →</a>
-      </div>
-      <div class="example-shot">
-        <img src="/demo_grand_market_sources.jpg" alt="Source panel for the Caribbean Grand Market answer showing radio, Instagram and TikTok sources with timestamps" />
-      </div>
+    <!-- ── Demo 2: dark number-led proof ─────────── -->
+    <article class="demo-block">
+      <article class="demo-numbers">
+        <div>
+          <p class="demo-eyebrow">When several sources tell the story</p>
+          <h3 class="demo-numbers-title">Caribbean Grand Market at <em>CARIFESTA House</em></h3>
+          <p class="demo-a" style="color: rgba(255,255,255,0.78);">
+            Ten days of regional makers from Grenada, Jamaica, Guyana, Suriname, Trinidad &amp;
+            Tobago and Barbados, with fashion, art, craft, wellness and a food court. Free admission.
+          </p>
+          <p style="font-family: var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color: rgba(255,255,255,0.5); margin-top: 8px;">
+            One TikTok disagreed on the closing date (31 Aug vs 30 Aug). Pulse reported both windows and flagged which was safer.
+          </p>
+          <a class="demo-cta"
+             href="https://app.pulsebarbados.com/chat?demo=grand-market&amp;q=I%27m%20looking%20for%20something%20cultural%20to%20do.%20What%27s%20going%20on%20this%20week%3F"
+             target="_blank" rel="noopener noreferrer"
+             style="margin-top: 32px; border-color: rgba(255,255,255,0.4); color: #fff;">
+            Open the Grand Market in the app
+            <span class="arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </a>
+        </div>
+        <div class="demo-counter" aria-label="Source breakdown">
+          <div>
+            <div class="num">6</div>
+            <div class="label">Independent sources</div>
+          </div>
+          <div>
+            <div class="num">3</div>
+            <div class="label">Live FM broadcasts</div>
+          </div>
+          <div>
+            <div class="num">1</div>
+            <div class="label">Organiser Instagram</div>
+          </div>
+          <div>
+            <div class="num">2</div>
+            <div class="label">Visitor TikToks</div>
+          </div>
+        </div>
+      </article>
     </article>
 
-    <!-- Cricket -->
-    <article class="example-card">
-      <div class="example-text">
-        <p class="example-label">When the evidence is on the radio</p>
-        <span class="pill">Recorded example · 6 September 2026</span>
-        <h3 class="example-q">🏏 Caribbean Premier League at Kensington Oval</h3>
-        <p class="example-what"><strong>The question:</strong> “What's happening with cricket in Barbados?”</p>
-        <p class="example-a">
-          The CPL is live at <strong>Kensington Oval</strong>. The Beat 104.1 FM is the
-          official radio rights holder for the tournament, and Q 100.7 FM is carrying
-          live ball-by-ball commentary alongside CBC TV8. LIFE 97.5 confirms the bigger
-          picture: T20 cricket runs through August and September with the playoffs and
-          the final at Kensington Oval.
-        </p>
-        <ul class="sources">
-          <li>The Beat 104.1 FM (rights holder, live commentary)</li>
-          <li>Q 100.7 FM (CBC TV8 broadcast promo)</li>
-          <li>LIFE 97.5 FM (schedule read)</li>
-          <li>VOB 92.9 (cricket discussion)</li>
-        </ul>
-        <p class="example-what">
-          <strong>What this shows:</strong> for live events, every source IS the radio
-          broadcast. There's no article to link to — the audio is the evidence. Play
-          any radio card in the app to hear the original broadcast.
-        </p>
-        <a class="btn btn-primary" href="https://app.pulsebarbados.com/chat?demo=cricket&amp;q=What%27s%20happening%20with%20cricket%20in%20Barbados%3F" target="_blank" rel="noopener noreferrer">Open the Cricket demo in the app →</a>
-      </div>
-      <div class="example-shot">
-        <img src="/demo_circus_sources.jpg" alt="Source panel from a Pulse answer showing radio broadcast cards with timestamps and play affordances" />
-      </div>
+    <!-- ── Demo 3: long-form quote ──────────────── -->
+    <article class="demo-block">
+      <article class="demo-quote">
+        <span class="qmark" aria-hidden="true">&ldquo;</span>
+        <div>
+          <p class="demo-eyebrow">When the evidence is on the radio</p>
+          <span class="demo-pill">Recorded example · 6 Sep 2026</span>
+          <p class="demo-quote-body">
+            For live events, every source <em>is</em> the radio broadcast. There is no
+            article to link to; the audio IS the evidence. Pulse kept the four clearest
+            live FM clips so anyone can play the original broadcast.
+          </p>
+          <p class="demo-quote-attribution">
+            <span class="play" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8V4z"/></svg>
+            </span>
+            The Beat 104.1 FM, LIFE 97.5, Q 100.7, VOB 92.9 · CPL commentary at Kensington Oval
+          </p>
+          <a class="demo-cta"
+             href="https://app.pulsebarbados.com/chat?demo=cricket&amp;q=What%27s%20happening%20with%20cricket%20in%20Barbados%3F"
+             target="_blank" rel="noopener noreferrer">
+            Open the Cricket demo in the app
+            <span class="arrow" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </a>
+        </div>
+      </article>
     </article>
   </div>
 </section>
 
-<!-- ── Brief market mention ────────────────────────────────────── -->
+<!-- ── Brief market mention ──────────────────────── -->
 <section class="section">
   <div class="container">
-    <p class="market-blurb">
-      Pulse is being built for <strong>hotel and villa concierge desks</strong> in Barbados.
-      If you want to try it with your team, <a href="mailto:hello@pulsebarbados.com?subject=Pulse%20%E2%80%94%20first%20concierge%20trial">become a first customer</a>.
+    <p class="section-label">For hotel &amp; villa concierges</p>
+    <h2 class="section-title">A pocket research desk for <em>every</em> shift.</h2>
+    <p class="section-sub">
+      Pulse is being built first for hotel and villa concierge desks in Barbados. If you want
+      to try it with your team, write to
+      <a href="mailto:hello@pulsebarbados.com?subject=First%20concierge%20trial" style="color: var(--brand); text-decoration: underline; text-underline-offset: 3px;">
+        hello@pulsebarbados.com</a>.
     </p>
-  </div>
-</section>
-
-<!-- ── Bottom: how it works link ────────────────────────────── -->
-<section class="section section-alt">
-  <div class="container judges-cta">
-    <p class="judges-label">For the curious</p>
-    <h2 class="judges-title">Find out more about how it works.</h2>
-    <p class="judges-sub">
-      The architecture, the runtime stack, the public MCP and the way claims are grounded
-      in verbatim evidence — written for someone who wants the engineering picture.
-    </p>
-    <a class="btn btn-secondary" href="/build.html">Read how it's built →</a>
   </div>
 </section>
 
 <footer class="footer">
   <div class="container footer-inner">
-    <img src="/pulse-logo.png" alt="Pulse" />
-    <p class="footer-text">Public-signal intelligence, first deployed in Barbados.</p>
-    <p class="footer-small">© 2026 Pulse · Future Caribbean Buildathon</p>
+    <a class="footer-mark" href="/">
+      <img src="/pulse-logo.png" alt="Pulse" />
+      Public-signal intelligence, first deployed in Barbados.
+    </a>
+    <p class="footer-meta">© 2026 Pulse · Future Caribbean Buildathon</p>
   </div>
 </footer>
 

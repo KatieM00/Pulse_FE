@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Explore the build — Pulse architecture</title>
-<meta name="description" content="The Pulse engine, end to end. Capture, extraction, multi-agent ingest crew, deterministic Applier, bounded Ask agent, public MCP. With the architecture diagram." />
+<title>How it works, Pulse architecture</title>
+<meta name="description" content="The Pulse engine, end to end. Capture, extraction, ingest crew, deterministic Applier, bounded Ask agent, public MCP." />
 <link rel="icon" href="/favicon.ico" />
 <link rel="stylesheet" href="/pulse-landing.css" />
 </head>
@@ -14,141 +14,165 @@
   <div class="container nav-inner">
     <a class="brand" href="/">
       <img src="/pulse-logo.png" alt="Pulse" />
-      <span class="beta-badge">Beta</span>
+      <span class="brand-pill">Beta</span>
     </a>
     <nav class="nav-links" aria-label="Sections">
-      <a href="https://app.pulsebarbados.com/" rel="noopener">Open Pulse</a>
       <a href="/">Overview</a>
+      <a href="/#demos">Demos</a>
     </nav>
-    <a class="nav-cta" href="https://app.pulsebarbados.com/" rel="noopener">Try Pulse — Beta</a>
+    <a class="nav-cta" href="https://app.pulsebarbados.com/" rel="noopener">
+      Open Pulse
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
   </div>
 </header>
 
-<section class="hero">
-  <div class="container hero-inner">
-    <div>
-      <p class="eyebrow">Architecture · what we built</p>
-      <h1 class="hero-title">One engine. Three surfaces. A graph that survives between queries.</h1>
-      <p class="hero-sub">
-        Pulse is a public-signal intelligence engine. The deployed web app, the public MCP, and
-        the JSON API are all views over the same source-linked knowledge graph. The agents
-        propose; the deterministic Applier writes; every claim has the verbatim evidence behind it.
-      </p>
-      <div class="cta-group">
-        <a class="btn btn-primary" href="https://app.pulsebarbados.com/" rel="noopener">Try Pulse — Beta →</a>
-        <a class="btn btn-secondary" href="/welcome.html">Back to overview</a>
-      </div>
-      <p class="hero-note">
-        Deployed at <a href="https://pulsebarbados.com/" rel="noopener">pulsebarbados.com</a> ·
-        MCP access available on request — <a href="mailto:hello@pulsebarbados.com">hello@pulsebarbados.com</a>
-      </p>
-    </div>
-    <div>
-      <img class="hero-phone" src="/pulse-architecture.svg" alt="Pulse architecture diagram: capture, extraction, ingest crew, Applier, knowledge graph, three read surfaces" />
-    </div>
+<!-- ── Hero ─────────────────────────────────────── -->
+<section class="hero" style="padding-bottom: 80px;">
+  <div class="container">
+    <p class="hero-eyebrow">Architecture · what we built</p>
+    <h1 class="hero-title">One engine. <em>Three surfaces.</em> A graph that survives between queries.</h1>
+    <p class="hero-sub">
+      Pulse is a public-signal intelligence engine. The deployed web app, the public MCP and
+      the JSON API are views over the same source-linked knowledge graph. Agents propose; the
+      deterministic Applier writes; every claim has the verbatim evidence behind it.
+    </p>
   </div>
 </section>
 
-<!-- ── The engine ─────────────────────────────────────────── -->
-<section class="section" id="engine">
+<!-- ── Engine ──────────────────────────────────── -->
+<section class="section">
   <div class="container">
-    <p class="section-eyebrow">The engine</p>
-    <h2 class="section-title">Capture → extract → crew → Applier → graph.</h2>
+    <p class="section-label">The engine</p>
+    <h2 class="section-title">Capture &rarr; extract &rarr; crew &rarr; Applier &rarr; graph.</h2>
     <p class="section-sub">
-      Every claim on the graph is linked back to the verbatim text it came from, the source that
-      produced it, and the timestamp that source carried when it was ingested. No claim exists
-      without evidence. The agents propose; the Applier applies.
+      Every claim is linked back to the verbatim text, the source that produced it and the
+      timestamp that source carried when it was ingested. No claim without evidence.
     </p>
 
-    <ul class="bullets">
-      <li>
-        <strong>Capture</strong>
-        Continuous radio capture against ten Barbadian FM stations (VOB 92.9, CBC 94.7, LIFE 97.5, HOTT 95.3, 98.1 The One, Q 100.7, Slam 101.1, Y103.3, The Beat 104.1, Radio Bimshire 106.1) via <code>ffmpeg</code> timestamped atoms, with parallel text/web/RSS, TikTok, Instagram, YouTube, and corpus adapters running the same shared pipeline.
-      </li>
-      <li>
-        <strong>Transcription & extraction</strong>
-        Three production audio passes per chunk: fast local transcription for triage, NVIDIA Nemotron Speech Streaming for the canonical transcript, and a stage-2 model (MiniMax M3) for typed extraction with HIGHRISE as the bounded fallback. A MiniMax spend tracker enforces the budget. On the social-video path, BimOmni (a Qwen3-Omni LoRA fine-tuned on the Barbados newspaper archive) replaces Nemotron to recover proper nouns ("Kidscape Barbados" not "Kids Cake").
-      </li>
-      <li>
-        <strong>Ingest crew</strong>
-        Stage 2 emits a typed extraction. The Curator agent (CrewAI) resolves mentions and proposes a Changeset of ChangeOp values. The optional Reviewer agent approves or rejects each op. Tools gate unsafe operations and validate searched entity IDs. Every kickoff emits its full event stream — LLM calls, tool usage, task boundaries — through the CrewAI event bus into the persisted <code>agent_trace_event</code> table.
-      </li>
-      <li>
-        <strong>Deterministic Applier</strong>
-        The Applier is the only code that mutates the graph, and it writes in one transaction. Invalid ops are rejected without abandoning the rest of the batch. Source-ledger writes are persisted before any graph mutation, so every claim has a durable handle back to the verbatim evidence and the agent run that proposed it.
-      </li>
-      <li>
-        <strong>Ask side — bounded agent retrieval</strong>
-        The search side is one bounded agent loop (5 steps, 18K tokens, 18s wallclock) followed by one bounded composer call. The agent drives eleven typed tools: resolve_entities, search_text, search_claims, walk_graph, expand_entity, recent_claims, check_series, get_pulse, get_evidence, ask_user, final_answer. Tool calls dispatch in parallel within a turn; the watchdog stops runaway loops. p50 4.5s, p95 13.2s on the 33-query canonical suite.
-      </li>
-      <li>
-        <strong>Three read surfaces</strong>
-        The deployed web app (<code>app.pulsebarbados.com</code>), the read-only MCP server (<code>mcp.pulsebarbados.com</code>), and the JSON API (<code>/api/health</code>, <code>/api/feed</code>, <code>/api/ask</code>) all read from the same graph. The chatbot sits on top of the evidence graph any third-party agent can read.
-      </li>
-    </ul>
+    <div class="engine">
+      <article class="engine-card">
+        <p class="engine-card-label">1 · Capture</p>
+        <h3 class="engine-card-h">Continuous radio capture across ten Barbadian FM stations.</h3>
+        <p class="engine-card-p">
+          <code>VOB 92.9</code>, <code>CBC 94.7</code>, <code>LIFE 97.5</code>, <code>HOTT 95.3</code>,
+          <code>98.1 The One</code>, <code>Q 100.7</code>, <code>Slam 101.1</code>,
+          <code>Y103.3</code>, <code>The Beat 104.1</code>, <code>Radio Bimshire 106.1</code>.
+          Parallel text, web, RSS, TikTok, Instagram, YouTube and corpus adapters share the
+          same pipeline.
+        </p>
+      </article>
 
-    <div class="stack">
-      <h3>Runtime stack</h3>
-      <div class="stack-grid">
-        <div class="stack-item"><strong>PostgreSQL 16</strong><span>pgvector + pg_trgm primary store</span></div>
-        <div class="stack-item"><strong>Nemotron FastConformer-RNNT</strong><span>local radio transcription</span></div>
-        <div class="stack-item"><strong>MiniMax M3</strong><span>typed Stage 2 extraction</span></div>
-        <div class="stack-item"><strong>BimOmni (Qwen3-Omni LoRA)</strong><span>Barbados-adapted social-video ASR</span></div>
-        <div class="stack-item"><strong>CrewAI</strong><span>ingest crew orchestration</span></div>
-        <div class="stack-item"><strong>MCP SDK 2.0</strong><span>public read-only tools</span></div>
-        <div class="stack-item"><strong>fastembed BGE-large</strong><span>local 1024-dim embeddings</span></div>
-        <div class="stack-item"><strong>Apify / DataForSEO</strong><span>TikTok, Instagram, YouTube acquisition</span></div>
-      </div>
+      <article class="engine-card">
+        <p class="engine-card-label">2 · Transcription &amp; extraction</p>
+        <h3 class="engine-card-h">Three audio passes per chunk, then typed extraction.</h3>
+        <p class="engine-card-p">
+          Fast local transcription for triage, Nemotron Speech Streaming for the canonical
+          transcript, then a stage-2 typed extraction with <code>HIGHRISE</code> as a bounded
+          fallback. A spend tracker enforces the model budget. On social video, <code>BimOmni</code>
+          (a Qwen3-Omni LoRA tuned on the Barbados newspaper archive) recovers proper nouns
+          like &ldquo;Kidscape Barbados&rdquo; instead of &ldquo;Kids Cake&rdquo;.
+        </p>
+      </article>
+
+      <article class="engine-card">
+        <p class="engine-card-label">3 · Ingest crew</p>
+        <h3 class="engine-card-h">Curator proposes a Changeset. Reviewer approves or rejects.</h3>
+        <p class="engine-card-p">
+          Stage 2 emits a typed extraction. The Curator agent (<code>CrewAI</code>) resolves
+          mentions and proposes a <code>Changeset</code> of <code>ChangeOp</code> values. The
+          optional Reviewer approves or rejects each op. Tools gate unsafe operations and
+          validate searched entity IDs. Every kickoff emits its full event stream (LLM calls,
+          tool usage, task boundaries) into the persisted <code>agent_trace_event</code> table.
+        </p>
+      </article>
+
+      <article class="engine-card">
+        <p class="engine-card-label">4 · Deterministic Applier</p>
+        <h3 class="engine-card-h">One transaction. No abandoned batches. Durable evidence handles.</h3>
+        <p class="engine-card-p">
+          The Applier is the only code that mutates the graph, and it writes in one transaction.
+          Invalid ops are rejected without abandoning the rest of the batch. Source-ledger
+          writes are persisted before any graph mutation, so every claim has a durable handle
+          back to the verbatim evidence and the agent run that proposed it.
+        </p>
+      </article>
+
+      <article class="engine-card">
+        <p class="engine-card-label">5 · Ask side, bounded agent retrieval</p>
+        <h3 class="engine-card-h">One bounded agent loop, then one bounded composer call.</h3>
+        <p class="engine-card-p">
+          5 steps, 18K tokens, 18s wallclock. The agent drives eleven typed tools (entity
+          resolution, lexical + vector search, claim query, graph walk, expansion, evidence
+          retrieval). Tool calls dispatch in parallel within a turn. A watchdog stops runaway
+          loops. <strong>p50 4.5s · p95 13.2s</strong> on the 33-query canonical suite.
+        </p>
+      </article>
+
+      <article class="engine-card">
+        <p class="engine-card-label">6 · Three read surfaces</p>
+        <h3 class="engine-card-h">The same graph, three ways to read it.</h3>
+        <p class="engine-card-p">
+          The deployed web app (<code>app.pulsebarbados.com</code>), the read-only MCP server
+          (<code>mcp.pulsebarbados.com</code>) and the JSON API (<code>/api/health</code>,
+          <code>/api/feed</code>, <code>/api/ask</code>) all read from the same graph. The
+          chatbot is one view; any third-party agent can read the same evidence.
+        </p>
+      </article>
     </div>
+
+    <!-- Knowledge graph figure -->
+    <article class="kg-figure">
+      <div class="kg-figure-img">
+        <img src="/kg-graph.jpg" alt="A cropped segment of Pulse's production knowledge graph showing Barbados entities connected through claims and event relationships." />
+      </div>
+      <div class="kg-figure-text">
+        <p class="num">2,363 <strong>entities</strong></p>
+        <p>
+          A weekly-rendered view of the production graph. Places like Bridgetown, Holetown,
+          Oistins and St. Lawrence Gap form visible centres of gravity; events, venues,
+          organisations and concepts arrange themselves around them through their actual edges.
+        </p>
+        <div class="stat">
+          <div>
+            <div class="num" style="font-size: 28px;">10,918</div>
+            <div class="label" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);">evidence spans</div>
+          </div>
+          <div>
+            <div class="num" style="font-size: 28px;">10</div>
+            <div class="label" style="font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint);">live FM stations</div>
+          </div>
+        </div>
+      </div>
+    </article>
   </div>
 </section>
 
-<!-- ── Knowledge graph visual ─────────────────────────────── -->
-<section class="section section-alt">
+<!-- ── Public MCP ────────────────────────────── -->
+<section class="section">
   <div class="container">
-    <p class="section-eyebrow">The durable asset</p>
-    <h2 class="section-title">The knowledge graph, made visible.</h2>
+    <p class="section-label">Public MCP · read-only</p>
+    <h2 class="section-title">The same evidence graph, <em>for any agent that speaks MCP</em>.</h2>
     <p class="section-sub">
-      Places like Bridgetown, Holetown, Oistins and St. Lawrence Gap form visible centres of
-      gravity; events, venues, organisations and concepts arrange themselves around them through
-      their actual edges. Rendered live from the production database, with edges coloured by
-      claim type and corroboration strength.
-    </p>
-    <img class="demo-shot" src="/kg-graph.jpg" alt="Knowledge graph backbone: Barbados entities connected through claims and event relationships" />
-  </div>
-</section>
-
-<!-- ── Public MCP ─────────────────────────────────────────── -->
-<section class="section" id="mcp">
-  <div class="container">
-    <p class="section-eyebrow">Public MCP · read-only</p>
-    <h2 class="section-title">The same evidence graph, exposed to any agent that speaks MCP.</h2>
-    <p class="section-sub">
-      Claude, ChatGPT, OpenClaw, and any future MCP-speaking agent can hit
+      Claude, ChatGPT, OpenClaw and any future MCP-speaking agent can hit
       <code>mcp.pulsebarbados.com</code> with no client-side code change. Token-in-URL auth,
-      query-string redaction in Caddy's access log, the right capability flags (read-only /
-      idempotent / closed-world) on every tool.
+      query-string redaction in Caddy's access log and read-only / idempotent / closed-world
+      flags on every tool. Reach out to
+      <a href="mailto:hello@pulsebarbados.com" style="color: var(--brand); text-decoration: underline; text-underline-offset: 3px;">hello@pulsebarbados.com</a>
+      for MCP access.
     </p>
-
-    <p class="section-sub">
-      Claude, ChatGPT, OpenClaw, and any MCP-speaking agent can read the same evidence graph
-      Pulse uses — with token-in-URL authentication, query-string redaction in the access log,
-      and every tool marked read-only, idempotent and closed-world. The tools surface entity
-      resolution, full-text and vector search, claim filtering, and evidence retrieval. Reach out
-      to <a href="mailto:hello@pulsebarbados.com">hello@pulsebarbados.com</a> for MCP access.
-    </p>
-
-    <div class="cta-group">
-      <a class="btn btn-secondary" href="/">Back to overview</a>
-    </div>
   </div>
 </section>
 
 <footer class="footer">
   <div class="container footer-inner">
-    <img src="/pulse-logo.png" alt="Pulse" />
-    <p class="footer-text">Public-signal intelligence, first deployed in Barbados.</p>
-    <p class="footer-small">© 2026 Pulse · Future Caribbean Buildathon</p>
+    <a class="footer-mark" href="/">
+      <img src="/pulse-logo.png" alt="Pulse" />
+      Public-signal intelligence, first deployed in Barbados.
+    </a>
+    <p class="footer-meta">© 2026 Pulse · Future Caribbean Buildathon</p>
   </div>
 </footer>
 
