@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Explore the build — Pulse architecture</title>
+<meta name="description" content="The Pulse engine, end to end. Capture, extraction, multi-agent ingest crew, deterministic Applier, bounded Ask agent, public MCP. With the architecture diagram." />
+<link rel="icon" href="/favicon.ico" />
+<link rel="stylesheet" href="/pulse-landing.css" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/pulse-logo.png" alt="Pulse" />
+      <span class="beta-badge">Beta</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="https://app.pulsebarbados.com/" rel="noopener">Open Pulse</a>
+      <a href="/">Overview</a>
+    </nav>
+    <a class="nav-cta" href="https://app.pulsebarbados.com/" rel="noopener">Try Pulse — Beta</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-inner">
+    <div>
+      <p class="eyebrow">Architecture · what we built</p>
+      <h1 class="hero-title">One engine. Three surfaces. A graph that survives between queries.</h1>
+      <p class="hero-sub">
+        Pulse is a public-signal intelligence engine. The deployed web app, the public MCP, and
+        the JSON API are all views over the same source-linked knowledge graph. The agents
+        propose; the deterministic Applier writes; every claim has the verbatim evidence behind it.
+      </p>
+      <div class="cta-group">
+        <a class="btn btn-primary" href="https://app.pulsebarbados.com/" rel="noopener">Try Pulse — Beta →</a>
+        <a class="btn btn-secondary" href="/welcome.html">Back to overview</a>
+      </div>
+      <p class="hero-note">
+        Deployed at <a href="https://pulsebarbados.com/" rel="noopener">pulsebarbados.com</a> ·
+        MCP access available on request — <a href="mailto:hello@pulsebarbados.com">hello@pulsebarbados.com</a>
+      </p>
+    </div>
+    <div>
+      <img class="hero-phone" src="/pulse-architecture.svg" alt="Pulse architecture diagram: capture, extraction, ingest crew, Applier, knowledge graph, three read surfaces" />
+    </div>
+  </div>
+</section>
+
+<!-- ── The engine ─────────────────────────────────────────── -->
+<section class="section" id="engine">
+  <div class="container">
+    <p class="section-eyebrow">The engine</p>
+    <h2 class="section-title">Capture → extract → crew → Applier → graph.</h2>
+    <p class="section-sub">
+      Every claim on the graph is linked back to the verbatim text it came from, the source that
+      produced it, and the timestamp that source carried when it was ingested. No claim exists
+      without evidence. The agents propose; the Applier applies.
+    </p>
+
+    <ul class="bullets">
+      <li>
+        <strong>Capture</strong>
+        Continuous radio capture against ten Barbadian FM stations (VOB 92.9, CBC 94.7, LIFE 97.5, HOTT 95.3, 98.1 The One, Q 100.7, Slam 101.1, Y103.3, The Beat 104.1, Radio Bimshire 106.1) via <code>ffmpeg</code> timestamped atoms, with parallel text/web/RSS, TikTok, Instagram, YouTube, and corpus adapters running the same shared pipeline.
+      </li>
+      <li>
+        <strong>Transcription & extraction</strong>
+        Three production audio passes per chunk: fast local transcription for triage, NVIDIA Nemotron Speech Streaming for the canonical transcript, and a stage-2 model (MiniMax M3) for typed extraction with HIGHRISE as the bounded fallback. A MiniMax spend tracker enforces the budget. On the social-video path, BimOmni (a Qwen3-Omni LoRA fine-tuned on the Barbados newspaper archive) replaces Nemotron to recover proper nouns ("Kidscape Barbados" not "Kids Cake").
+      </li>
+      <li>
+        <strong>Ingest crew</strong>
+        Stage 2 emits a typed extraction. The Curator agent (CrewAI) resolves mentions and proposes a Changeset of ChangeOp values. The optional Reviewer agent approves or rejects each op. Tools gate unsafe operations and validate searched entity IDs. Every kickoff emits its full event stream — LLM calls, tool usage, task boundaries — through the CrewAI event bus into the persisted <code>agent_trace_event</code> table.
+      </li>
+      <li>
+        <strong>Deterministic Applier</strong>
+        The Applier is the only code that mutates the graph, and it writes in one transaction. Invalid ops are rejected without abandoning the rest of the batch. Source-ledger writes are persisted before any graph mutation, so every claim has a durable handle back to the verbatim evidence and the agent run that proposed it.
+      </li>
+      <li>
+        <strong>Ask side — bounded agent retrieval</strong>
+        The search side is one bounded agent loop (5 steps, 18K tokens, 18s wallclock) followed by one bounded composer call. The agent drives eleven typed tools: resolve_entities, search_text, search_claims, walk_graph, expand_entity, recent_claims, check_series, get_pulse, get_evidence, ask_user, final_answer. Tool calls dispatch in parallel within a turn; the watchdog stops runaway loops. p50 4.5s, p95 13.2s on the 33-query canonical suite.
+      </li>
+      <li>
+        <strong>Three read surfaces</strong>
+        The deployed web app (<code>app.pulsebarbados.com</code>), the read-only MCP server (<code>mcp.pulsebarbados.com</code>), and the JSON API (<code>/api/health</code>, <code>/api/feed</code>, <code>/api/ask</code>) all read from the same graph. The chatbot sits on top of the evidence graph any third-party agent can read.
+      </li>
+    </ul>
+
+    <div class="stack">
+      <h3>Runtime stack</h3>
+      <div class="stack-grid">
+        <div class="stack-item"><strong>PostgreSQL 16</strong><span>pgvector + pg_trgm primary store</span></div>
+        <div class="stack-item"><strong>Nemotron FastConformer-RNNT</strong><span>local radio transcription</span></div>
+        <div class="stack-item"><strong>MiniMax M3</strong><span>typed Stage 2 extraction</span></div>
+        <div class="stack-item"><strong>BimOmni (Qwen3-Omni LoRA)</strong><span>Barbados-adapted social-video ASR</span></div>
+        <div class="stack-item"><strong>CrewAI</strong><span>ingest crew orchestration</span></div>
+        <div class="stack-item"><strong>MCP SDK 2.0</strong><span>public read-only tools</span></div>
+        <div class="stack-item"><strong>fastembed BGE-large</strong><span>local 1024-dim embeddings</span></div>
+        <div class="stack-item"><strong>Apify / DataForSEO</strong><span>TikTok, Instagram, YouTube acquisition</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Knowledge graph visual ─────────────────────────────── -->
+<section class="section section-alt">
+  <div class="container">
+    <p class="section-eyebrow">The durable asset</p>
+    <h2 class="section-title">The knowledge graph, made visible.</h2>
+    <p class="section-sub">
+      Places like Bridgetown, Holetown, Oistins and St. Lawrence Gap form visible centres of
+      gravity; events, venues, organisations and concepts arrange themselves around them through
+      their actual edges. Rendered live from the production database, with edges coloured by
+      claim type and corroboration strength.
+    </p>
+    <img class="demo-shot" src="/kg-graph.jpg" alt="Knowledge graph backbone: Barbados entities connected through claims and event relationships" />
+  </div>
+</section>
+
+<!-- ── Public MCP ─────────────────────────────────────────── -->
+<section class="section" id="mcp">
+  <div class="container">
+    <p class="section-eyebrow">Public MCP · read-only</p>
+    <h2 class="section-title">The same evidence graph, exposed to any agent that speaks MCP.</h2>
+    <p class="section-sub">
+      Claude, ChatGPT, OpenClaw, and any future MCP-speaking agent can hit
+      <code>mcp.pulsebarbados.com</code> with no client-side code change. Token-in-URL auth,
+      query-string redaction in Caddy's access log, the right capability flags (read-only /
+      idempotent / closed-world) on every tool.
+    </p>
+
+    <p class="section-sub">
+      Claude, ChatGPT, OpenClaw, and any MCP-speaking agent can read the same evidence graph
+      Pulse uses — with token-in-URL authentication, query-string redaction in the access log,
+      and every tool marked read-only, idempotent and closed-world. The tools surface entity
+      resolution, full-text and vector search, claim filtering, and evidence retrieval. Reach out
+      to <a href="mailto:hello@pulsebarbados.com">hello@pulsebarbados.com</a> for MCP access.
+    </p>
+
+    <div class="cta-group">
+      <a class="btn btn-secondary" href="/">Back to overview</a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <img src="/pulse-logo.png" alt="Pulse" />
+    <p class="footer-text">Public-signal intelligence, first deployed in Barbados.</p>
+    <p class="footer-small">© 2026 Pulse · Future Caribbean Buildathon</p>
+  </div>
+</footer>
+
+</body>
+</html>
