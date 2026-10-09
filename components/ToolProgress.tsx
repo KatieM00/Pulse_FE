@@ -72,12 +72,22 @@ export default function ToolProgress({
     }
   }
 
-  // Don't render the timeline if there were no real tool calls.
-  if (!toolRows.length && !composerStarted && !finalError) return null;
+  // While the request is in flight, render even before the first tool row
+  // arrives: the reader submitted a question and must see that something is
+  // happening immediately, not a blank gap until the server's first event.
+  const pending = !message.finalised;
+  if (!toolRows.length && !composerStarted && !finalError && !pending) return null;
 
   const allFinished: boolean = Boolean(message.finalised);
   const finishedCount = toolRows.filter((r) => r.finished).length;
   const totalElapsed = sum(toolRows.map((r) => r.elapsedMs));
+  // Latest server-reported elapsed, so a running request shows time moving
+  // rather than a static "Thinking".
+  const latestElapsed = progress.reduce(
+    (max, event) =>
+      Math.max(max, "elapsed_ms" in event ? (event.elapsed_ms ?? 0) : 0),
+    0,
+  );
   const headerState = computeHeader({
     allFinished,
     composerStarted,
@@ -103,6 +113,10 @@ export default function ToolProgress({
               ? "1 tool"
               : `${toolRows.length} tools`}{" "}
             · {(totalElapsed / 1000).toFixed(1)} s
+          </span>
+        ) : latestElapsed > 0 ? (
+          <span className={styles.headerMeta}>
+            {(latestElapsed / 1000).toFixed(1)} s
           </span>
         ) : null}
       </div>
