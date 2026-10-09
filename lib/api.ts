@@ -47,15 +47,10 @@ export async function askPulse(
     });
     if (!resp.ok) {
       const body = (await resp.json().catch(() => ({}))) as {
-        error?: string;
-        detail?: string;
+        error?: unknown;
+        detail?: unknown;
       };
-      const detail = body.detail ? `: ${body.detail}` : "";
-      throw new Error(
-        body.error
-          ? `${body.error}${detail}`
-          : `ask failed (${resp.status})`,
-      );
+      throw new Error(describeError(body, resp.status));
     }
     const body = (await resp.json()) as AskResponse;
     return stripUnopenable(body);
@@ -100,17 +95,14 @@ export async function askPulseStream(
       // The server always sends SSE for a 200; any non-200 means
       // the JSON branch answered (e.g. planner/composer unavailable
       // with HTTP 502). Surface the JSON error so the chat can fall
-      // back to askPulse's existing error copy.
+      // back to askPulse's existing error copy. FastAPI validation errors
+      // arrive as `{detail: [...]}`, so a non-string detail is stringified
+      // rather than rendered as "[object Object]".
       const body = (await resp.json().catch(() => ({}))) as {
-        error?: string;
-        detail?: string;
+        error?: unknown;
+        detail?: unknown;
       };
-      const detail = body.detail ? `: ${body.detail}` : "";
-      throw new Error(
-        body.error
-          ? `${body.error}${detail}`
-          : `ask failed (${resp.status})`,
-      );
+      throw new Error(describeError(body, resp.status));
     }
     if (!resp.body) {
       throw new Error("ask stream: empty response body");
@@ -138,6 +130,7 @@ export async function consumeSseStream(
   const decoder = new TextDecoder("utf-8");
   let carry = "";
   let lastEvent: AskResponse | null = null;
+  let streamError: { error_message?: string; http_status?: number } | null = null;
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
@@ -155,6 +148,8 @@ export async function consumeSseStream(
         handlers.onProgress(parsed);
         if (parsed.type === "done") {
           lastEvent = parsed.response;
+        } else if (parsed.type === "error") {
+          streamError = parsed;
         }
       }
       sep = carry.indexOf("\n\n");
@@ -167,11 +162,18 @@ export async function consumeSseStream(
       handlers.onProgress(parsed);
       if (parsed.type === "done") {
         lastEvent = parsed.response;
+      } else if (parsed.type === "error") {
+        streamError = parsed;
       }
     }
   }
   if (!lastEvent) {
-    throw new Error("ask stream: ended without a done event");
+    // The server sends `event: error` and then closes without a `done` when the
+    // request failed mid-stream. The message it gave was previously discarded
+    // and the user saw a generic "couldn't reach Pulse"; surface it instead.
+    throw new Error(
+      streamError?.error_message || "ask stream: ended without a done event",
+    );
   }
   return stripUnopenable(lastEvent);
 }
@@ -292,6 +294,27 @@ function shapeEvent(
     };
   }
   return null;
+}
+
+/**
+ * Turn an error response body into a single human-readable string.
+ *
+ * The backend is FastAPI, so a validation failure is `{detail: [{...}]}` and a
+ * raised error is `{detail: "..."}`. Rendering either into `ask failed (422)`
+ * throws away the one thing the server said, which is what the chat's branch on
+ * "too long" / "planner_unavailable" needs.
+ */
+function describeError(body: { error?: unknown; detail?: unknown }, status: number): string {
+  const parts: string[] = [];
+  if (typeof body.error === "string" && body.error) parts.push(body.error);
+  if (body.detail !== undefined && body.detail !== null) {
+    parts.push(
+      typeof body.detail === "string"
+        ? body.detail
+        : JSON.stringify(body.detail),
+    );
+  }
+  return parts.length ? parts.join(": ") : `ask failed (${status})`;
 }
 
 function strOr(value: unknown, fallback: string): string {

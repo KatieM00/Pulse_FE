@@ -81,6 +81,8 @@ export interface SourceCardData {
   media_observation?: string | null;
   /** Entity-specific structured fields (dates, revision, snapshot, OCR, …). */
   data?: Record<string, unknown> | null;
+  /** Publisher permalink, when `url` points at a retained excerpt instead. */
+  publisher_url?: string | null;
   /** Chat-only: shown as "related" when the card was not cited inline. */
   uncited?: boolean;
 }
@@ -119,6 +121,7 @@ export function sourceCardFromChat(src: SourceRef): SourceCardData {
     observation_kind: src.observation_kind ?? null,
     media_observation: src.media_observation ?? null,
     data: src.data ?? null,
+    publisher_url: src.publisher_url ?? null,
   };
 }
 
@@ -366,6 +369,22 @@ function PreviewImage({
   );
 }
 
+/**
+ * Append a `#t=start[,end]` media fragment so a video opens at its cited span.
+ * Returns the URL unchanged when no offset is known.
+ */
+function withSpanFragment(
+  url: string,
+  start?: number | null,
+  end?: number | null,
+): string {
+  if (start == null || start <= 0) return url;
+  const base = url.split("#")[0];
+  const span =
+    end != null && end > start ? `${start},${end}` : `${start}`;
+  return `${base}#t=${span}`;
+}
+
 function RadioPlayer({
   embed,
   startOffset = 0,
@@ -496,7 +515,15 @@ function PreviewArea({
           {source.asset_kind === "video" && source.embed ? (
             <video
               className={styles.previewImage}
-              src={source.embed}
+              /* Start at the cited span. A #t= fragment is the one seek hint a
+                 static <video src> can carry; without it a citation deep into a
+                 long clip opens at frame zero and the reader scrubs to find the
+                 evidence. */
+              src={withSpanFragment(
+                source.embed,
+                source.start_offset_s,
+                source.end_offset_s,
+              )}
               poster={source.thumbnail_url || undefined}
               controls
               preload="metadata"

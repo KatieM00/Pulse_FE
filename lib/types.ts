@@ -103,6 +103,8 @@ export interface SourceCardBase {
   media_observation?: string | null;
   /** Entity-specific structured fields (dates, revision, snapshot, OCR, etc.). */
   data?: Record<string, unknown> | null;
+  /** Publisher's own permalink, kept even when `url` opens a retained excerpt. */
+  publisher_url?: string | null;
 }
 
 export interface SourceRef extends SourceCardBase {
@@ -193,6 +195,10 @@ export interface AskResponse {
   pipeline_version?: string;
   /** Warnings collected from the pipeline (e.g. empty retrieval). */
   warnings?: string[];
+  /** Pulse2 additive: answered/partial/needs_clarification/insufficient_evidence/unavailable. */
+  outcome?: { outcome?: string; answered?: boolean; reasons?: string[] } | null;
+  /** Pulse2 additive: "model" when an LLM wrote the prose, "composed" otherwise. */
+  answer_source?: string | null;
 }
 
 /**
