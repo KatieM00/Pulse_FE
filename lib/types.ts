@@ -101,6 +101,8 @@ export interface SourceCardBase {
   snapshot_is_current?: boolean | null;
   observation_kind?: string | null;
   media_observation?: string | null;
+  /** Entity-specific structured fields (dates, revision, snapshot, OCR, etc.). */
+  data?: Record<string, unknown> | null;
 }
 
 export interface SourceRef extends SourceCardBase {

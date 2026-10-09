@@ -79,6 +79,8 @@ export interface SourceCardData {
   snapshot_is_current?: boolean | null;
   observation_kind?: string | null;
   media_observation?: string | null;
+  /** Entity-specific structured fields (dates, revision, snapshot, OCR, …). */
+  data?: Record<string, unknown> | null;
   /** Chat-only: shown as "related" when the card was not cited inline. */
   uncited?: boolean;
 }
@@ -116,6 +118,7 @@ export function sourceCardFromChat(src: SourceRef): SourceCardData {
     snapshot_is_current: src.snapshot_is_current ?? null,
     observation_kind: src.observation_kind ?? null,
     media_observation: src.media_observation ?? null,
+    data: src.data ?? null,
   };
 }
 
