@@ -574,11 +574,15 @@ export function SourceCard({
   const linked = source.url.startsWith("http");
   const host = linked ? hostname(source.url) : "";
   // The single date a reader cares about: when it was broadcast (radio) or
-  // published (everything else), falling back to when we collected it.
+  // published (everything else). A registration/ingest timestamp is NOT that,
+  // so it is not shown: the demo's locally-registered social media has no
+  // platform date, and printing the import time as the post date is a lie. When
+  // real acquisition supplies a publisher timestamp, `published_at` is set and
+  // the date appears.
   const sourceTimestamp =
     source.kind === "radio"
-      ? source.segment_at || source.captured_at || source.source_registered_at || source.known_at
-      : source.published_at || source.captured_at || source.source_registered_at || source.known_at;
+      ? source.segment_at || source.captured_at
+      : source.published_at || source.captured_at;
   const dateLabel = formatRelativeDateTime(sourceTimestamp);
   const titleText = source.title || source.label || "Source";
   const badge = badgeFor(source);
