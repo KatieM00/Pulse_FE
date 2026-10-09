@@ -52,6 +52,7 @@ export interface SourceCardData {
   /** Optional card caption; the radio station uses the slug as fallback. */
   label?: string;
   captured_at: string | null;
+  captured_at_basis?: "captured" | "published" | "registered" | "unknown" | null;
   segment_at?: string | null;
   thumbnail_url: string | null;
   embed: string;
@@ -61,6 +62,23 @@ export interface SourceCardData {
   reason?: string | null;
   /** Radio-only: station frequency in MHz. */
   station_frequency_mhz?: number | null;
+  start_offset_s?: number | null;
+  end_offset_s?: number | null;
+  asset_kind?: "image" | "video" | "audio" | null;
+  asset_index?: number | null;
+  known_at?: string | null;
+  temporal_text?: string | null;
+  published_at?: string | null;
+  published_at_source?: string | null;
+  modified_at?: string | null;
+  source_registered_at?: string | null;
+  revision_id?: number | null;
+  revision_ordinal?: number | null;
+  snapshot_id?: number | null;
+  snapshot_index?: number | null;
+  snapshot_is_current?: boolean | null;
+  observation_kind?: string | null;
+  media_observation?: string | null;
   /** Chat-only: shown as "related" when the card was not cited inline. */
   uncited?: boolean;
 }
@@ -74,12 +92,30 @@ export function sourceCardFromChat(src: SourceRef): SourceCardData {
     publisher: src.publisher ?? null,
     label: src.label,
     captured_at: src.captured_at ?? null,
+    captured_at_basis: src.captured_at_basis ?? null,
     segment_at: src.segment_at ?? null,
     thumbnail_url: src.thumbnail_url ?? null,
     embed: src.embed,
     reason: src.reason ?? null,
     station_frequency_mhz: src.station_frequency_mhz ?? null,
     uncited: src.uncited,
+    start_offset_s: src.start_offset_s ?? null,
+    end_offset_s: src.end_offset_s ?? null,
+    asset_kind: src.asset_kind ?? null,
+    asset_index: src.asset_index ?? null,
+    known_at: src.known_at ?? null,
+    temporal_text: src.temporal_text ?? null,
+    published_at: src.published_at ?? null,
+    published_at_source: src.published_at_source ?? null,
+    modified_at: src.modified_at ?? null,
+    source_registered_at: src.source_registered_at ?? null,
+    revision_id: src.revision_id ?? null,
+    revision_ordinal: src.revision_ordinal ?? null,
+    snapshot_id: src.snapshot_id ?? null,
+    snapshot_index: src.snapshot_index ?? null,
+    snapshot_is_current: src.snapshot_is_current ?? null,
+    observation_kind: src.observation_kind ?? null,
+    media_observation: src.media_observation ?? null,
   };
 }
 
@@ -329,11 +365,15 @@ function PreviewImage({
 
 function RadioPlayer({
   embed,
+  startOffset = 0,
+  endOffset,
   activeClipKey,
   myKey,
   onPlay,
 }: {
   embed: string;
+  startOffset?: number;
+  endOffset?: number | null;
   activeClipKey: string | null;
   myKey: string;
   onPlay: (key: string) => void;
@@ -359,6 +399,13 @@ function RadioPlayer({
       return;
     }
     onPlay(myKey);
+    const seek = () => {
+      if (el.currentTime < startOffset || (endOffset != null && el.currentTime >= endOffset)) {
+        el.currentTime = Math.max(0, startOffset);
+      }
+    };
+    if (el.readyState >= 1) seek();
+    else el.addEventListener("loadedmetadata", seek, { once: true });
     void el.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
   }
 
@@ -398,6 +445,11 @@ function RadioPlayer({
         preload="metadata"
         onTimeUpdate={(event) => {
           const audio = event.currentTarget;
+          if (endOffset != null && audio.currentTime >= endOffset) {
+            audio.pause();
+            audio.currentTime = Math.max(startOffset, endOffset);
+            return;
+          }
           if (audio.duration > 0) {
             setProgressPct((audio.currentTime / audio.duration) * 100);
           }
@@ -438,12 +490,25 @@ function PreviewArea({
         <RadioStationArt badge={badge} />
       ) : (
         <>
-          <PreviewImage
-            thumbnailUrl={source.thumbnail_url}
-            alt={alt}
-            fetchOnMissing={supportsLazyPreview}
-            sourceUrl={source.url}
-          />
+          {source.asset_kind === "video" && source.embed ? (
+            <video
+              className={styles.previewImage}
+              src={source.embed}
+              poster={source.thumbnail_url || undefined}
+              controls
+              preload="metadata"
+              playsInline
+              aria-label={alt}
+            />
+          ) : null}
+          {source.asset_kind !== "video" && (
+            <PreviewImage
+              thumbnailUrl={source.thumbnail_url}
+              alt={alt}
+              fetchOnMissing={supportsLazyPreview && !source.asset_kind}
+              sourceUrl={source.url}
+            />
+          )}
           {badge.kind === "tiktok" && (
             <div className={styles.previewGlyph} aria-hidden="true">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="rgba(255,255,255,0.9)">
@@ -484,6 +549,7 @@ export function SourceCard({
   const broadcastTime = source.kind === "radio"
     ? formatBroadcastTime(sourceTimestamp)
     : "";
+  const timeLabel = source.captured_at_basis === "captured" ? "Captured" : "Aired";
   const titleText = source.title || source.label || "Source";
   const badge = badgeFor(source);
 
@@ -497,7 +563,7 @@ export function SourceCard({
   }
   const attribution = attributionParts.join(" · ");
 
-  const showReason = variant === "chat" && !!source.reason;
+    const showReason = variant === "chat" && !!source.reason;
   const excerptText = variant === "feed" ? source.excerpt : null;
 
   const inner = (
@@ -510,12 +576,28 @@ export function SourceCard({
             <time className={styles.date} dateTime={sourceTimestamp || undefined}>
               <span>{dateLabel}</span>
               {broadcastTime && (
-                <span className={styles.broadcastTime}>Aired {broadcastTime}</span>
+                  <span className={styles.broadcastTime}>{timeLabel} {broadcastTime}</span>
               )}
             </time>
           )}
         </div>
         {attribution && <div className={styles.attribution}>{attribution}</div>}
+        {(source.published_at || source.known_at || source.source_registered_at || source.temporal_text) && (
+          <div className={styles.date}>
+            {source.published_at && <div>Published {formatDate(source.published_at)}{source.published_at_source ? ` · ${source.published_at_source}` : ""}</div>}
+            {source.known_at && <div>Known to Pulse {formatDate(source.known_at)}</div>}
+            {source.source_registered_at && <div>Registered {formatDate(source.source_registered_at)}</div>}
+            {source.temporal_text && <div>Date wording: “{source.temporal_text}”</div>}
+            {source.snapshot_id != null && <div>Snapshot {source.snapshot_index ?? source.snapshot_id}{source.snapshot_is_current === false ? " · superseded" : ""}</div>}
+            {source.revision_ordinal != null && <div>Transcript revision {source.revision_ordinal}</div>}
+          </div>
+        )}
+        {source.media_observation && (
+          <div className={styles.reason}>
+            {source.observation_kind === "media_reader" ? "Visual observation: " : "Source text: "}
+            {source.media_observation}
+          </div>
+        )}
         {excerptText && (
           <div className={styles.reason}>
             {excerptText}
@@ -576,6 +658,8 @@ export function SourceCard({
         {source.kind === "radio" && source.embed && (
           <RadioPlayer
             embed={source.embed}
+            startOffset={source.start_offset_s ?? 0}
+            endOffset={source.end_offset_s}
             activeClipKey={activeClipKey}
             myKey={cardKey}
             onPlay={onPlayClip}

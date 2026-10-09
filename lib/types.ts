@@ -75,10 +75,32 @@ export interface SourceCardBase {
   publisher?: string | null;
   /** ISO capture/observation timestamp for the underlying source. */
   captured_at?: string | null;
+  captured_at_basis?: "captured" | "published" | "registered" | "unknown" | null;
   /** Direct CDN preview image (signed URLs expire per answer). */
   thumbnail_url?: string | null;
   /** Radio only — broadcast frequency in MHz. */
   station_frequency_mhz?: number | null;
+  /** Segment offset within a radio recording, not the ingest timestamp. */
+  start_offset_s?: number | null;
+  end_offset_s?: number | null;
+  /** Physical media registered on Pulse (rather than a remote embed id). */
+  asset_kind?: "image" | "video" | "audio" | null;
+  asset_index?: number | null;
+  /** Dates deliberately retain their separate meanings. */
+  known_at?: string | null;
+  /** Exact applicability wording copied from the supporting quote, not a normalized date. */
+  temporal_text?: string | null;
+  published_at?: string | null;
+  published_at_source?: string | null;
+  modified_at?: string | null;
+  source_registered_at?: string | null;
+  revision_id?: number | null;
+  revision_ordinal?: number | null;
+  snapshot_id?: number | null;
+  snapshot_index?: number | null;
+  snapshot_is_current?: boolean | null;
+  observation_kind?: string | null;
+  media_observation?: string | null;
 }
 
 export interface SourceRef extends SourceCardBase {

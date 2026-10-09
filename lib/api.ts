@@ -15,6 +15,14 @@ export type { AskProgressEvent } from "./types";
 // same-origin /api/* to the Python API service on pulse-new. In dev,
 // point NEXT_PUBLIC_API_BASE at a locally running `python -m pulse.api`.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
+// Ask can be routed independently while the existing /api/feed and
+// /api/preview endpoints remain on the legacy service. Set this at build time
+// for the additive Pulse2 deployment, e.g. https://app.../api/v2.
+const PULSE2_ASK_BASE = process.env.NEXT_PUBLIC_PULSE2_API_BASE ?? "";
+const askUrl = (suffix = "") =>
+  PULSE2_ASK_BASE
+    ? `${PULSE2_ASK_BASE.replace(/\/$/, "")}/ask${suffix}`
+    : `${API_BASE}/api/ask${suffix}`;
 
 export async function askPulse(
   question: string,
@@ -26,7 +34,7 @@ export async function askPulse(
   // worst-case p95 target is 25s; leave headroom for the composer call.
   const timeout = setTimeout(() => controller.abort(), 120_000);
   try {
-    const resp = await fetch(`${API_BASE}/api/ask`, {
+    const resp = await fetch(askUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -74,7 +82,7 @@ export async function askPulseStream(
     handlers.signal.addEventListener("abort", () => controller.abort());
   }
   try {
-    const resp = await fetch(`${API_BASE}/api/ask`, {
+    const resp = await fetch(askUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
