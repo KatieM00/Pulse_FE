@@ -44,6 +44,21 @@ type AnswerSegment =
   | { kind: "text"; value: string }
   | { kind: "bold"; value: string };
 
+/**
+ * Remove inline citation markers from the answer prose.
+ *
+ * The model cites as `【O1/P1】` / `[O3/P1]`; the sources are already listed
+ * beneath the answer, so a raw reference code in the middle of a sentence is
+ * noise a reader cannot act on. Both full-width and ASCII brackets are handled.
+ */
+function stripCitationMarkers(text: string): string {
+  return text
+    .replace(/\s*[【\[]\s*O\d+(?:\s*\/\s*P\d+)?\s*[】\]]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ +([.,;:])/g, "$1")
+    .trim();
+}
+
 function parseAnswerSegments(text: string): AnswerSegment[] {
   const segments: AnswerSegment[] = [];
   const pattern = /\*\*([^*\n][^*\n]*?)\*\*|\*([^*\n]+)\*/g;
@@ -438,7 +453,7 @@ function ChatContent() {
               >
                 {msg.id.startsWith("msg-assistant-pending-") &&
                 !msg.finalised ? null : (
-                  parseAnswerSegments(msg.text).map((segment, idx) =>
+                  parseAnswerSegments(stripCitationMarkers(msg.text)).map((segment, idx) =>
                     segment.kind === "bold" ? (
                       <strong key={idx}>{segment.value}</strong>
                     ) : (

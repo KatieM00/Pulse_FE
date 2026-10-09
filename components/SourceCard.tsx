@@ -153,39 +153,40 @@ function _barbadosDateKey(date: Date): string {
   return `${lookup.year}-${lookup.month}-${lookup.day}`;
 }
 
-function formatDate(capturedAt: string | null | undefined): string {
-  if (!capturedAt) return "";
-  // Date-only API values describe a Barbados calendar date, not midnight UTC.
-  const value = /^\d{4}-\d{2}-\d{2}$/.test(capturedAt)
-    ? `${capturedAt}T12:00:00Z`
-    : capturedAt;
-  const date = new Date(value);
+/**
+ * One human date/time for a source, relative for the last two days.
+ *
+ * The card used to print several internal timestamps ("Known to Pulse",
+ * "Registered", "Transcript revision"); a reader wants when the item was
+ * broadcast or published, so that is the single value shown: "Today at 9:03am",
+ * "Yesterday at 5:12pm", or "7 Oct 2026".
+ */
+function formatRelativeDateTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const iso = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00Z` : value;
+  const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
 
-  const capturedKey = _barbadosDateKey(date);
+  const key = _barbadosDateKey(date);
   const now = new Date();
-  const todayKey = _barbadosDateKey(now);
-  if (capturedKey === todayKey) return "Today";
+  const time = new Intl.DateTimeFormat("en-BB", {
+    timeZone: BARBADOS_TZ,
+    hour: "numeric",
+    minute: "2-digit",
+  })
+    .format(date)
+    .replace(/\s+/g, "")
+    .toLowerCase();
 
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  if (capturedKey === _barbadosDateKey(yesterday)) return "Yesterday";
-
+  if (key === _barbadosDateKey(now)) return `Today at ${time}`;
+  if (key === _barbadosDateKey(new Date(now.getTime() - 24 * 60 * 60 * 1000))) {
+    return `Yesterday at ${time}`;
+  }
   return new Intl.DateTimeFormat("en-BB", {
     timeZone: BARBADOS_TZ,
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(date);
-}
-
-function formatBroadcastTime(segmentAt: string | null | undefined): string {
-  if (!segmentAt || !segmentAt.includes("T")) return "";
-  const date = new Date(segmentAt);
-  if (Number.isNaN(date.getTime())) return "";
-  return new Intl.DateTimeFormat("en-BB", {
-    timeZone: BARBADOS_TZ,
-    hour: "numeric",
-    minute: "2-digit",
   }).format(date);
 }
 
@@ -572,14 +573,13 @@ export function SourceCard({
   const cardKey = `${source.kind}:${source.id}:${source.embed}`;
   const linked = source.url.startsWith("http");
   const host = linked ? hostname(source.url) : "";
-  const sourceTimestamp = source.kind === "radio"
-    ? source.segment_at || source.captured_at
-    : source.captured_at;
-  const dateLabel = formatDate(sourceTimestamp);
-  const broadcastTime = source.kind === "radio"
-    ? formatBroadcastTime(sourceTimestamp)
-    : "";
-  const timeLabel = source.captured_at_basis === "captured" ? "Captured" : "Aired";
+  // The single date a reader cares about: when it was broadcast (radio) or
+  // published (everything else), falling back to when we collected it.
+  const sourceTimestamp =
+    source.kind === "radio"
+      ? source.segment_at || source.captured_at || source.source_registered_at || source.known_at
+      : source.published_at || source.captured_at || source.source_registered_at || source.known_at;
+  const dateLabel = formatRelativeDateTime(sourceTimestamp);
   const titleText = source.title || source.label || "Source";
   const badge = badgeFor(source);
 
@@ -592,6 +592,9 @@ export function SourceCard({
     attributionParts.push(host);
   }
   const attribution = attributionParts.join(" · ");
+  // The publisher is often the same as the title (a station's own name). Showing
+  // it twice reads as a mistake, so drop the attribution when it repeats.
+  const showAttribution = Boolean(attribution) && attribution !== titleText;
 
     const showReason = variant === "chat" && !!source.reason;
   const excerptText = variant === "feed" ? source.excerpt : null;
@@ -604,24 +607,11 @@ export function SourceCard({
           <div className={styles.title}>{titleText}</div>
           {dateLabel && (
             <time className={styles.date} dateTime={sourceTimestamp || undefined}>
-              <span>{dateLabel}</span>
-              {broadcastTime && (
-                  <span className={styles.broadcastTime}>{timeLabel} {broadcastTime}</span>
-              )}
+              {dateLabel}
             </time>
           )}
         </div>
-        {attribution && <div className={styles.attribution}>{attribution}</div>}
-        {(source.published_at || source.known_at || source.source_registered_at || source.temporal_text) && (
-          <div className={styles.date}>
-            {source.published_at && <div>Published {formatDate(source.published_at)}{source.published_at_source ? ` · ${source.published_at_source}` : ""}</div>}
-            {source.known_at && <div>Known to Pulse {formatDate(source.known_at)}</div>}
-            {source.source_registered_at && <div>Registered {formatDate(source.source_registered_at)}</div>}
-            {source.temporal_text && <div>Date wording: “{source.temporal_text}”</div>}
-            {source.snapshot_id != null && <div>Snapshot {source.snapshot_index ?? source.snapshot_id}{source.snapshot_is_current === false ? " · superseded" : ""}</div>}
-            {source.revision_ordinal != null && <div>Transcript revision {source.revision_ordinal}</div>}
-          </div>
-        )}
+        {showAttribution && <div className={styles.attribution}>{attribution}</div>}
         {source.media_observation && (
           <div className={styles.reason}>
             {source.observation_kind === "media_reader" ? "Visual observation: " : "Source text: "}
